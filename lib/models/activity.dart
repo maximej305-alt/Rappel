@@ -1,5 +1,8 @@
 import 'package:uuid/uuid.dart';
 
+import 'activity_priority.dart';
+import 'category.dart';
+
 enum RepeatRule { none, daily, weekly, monthly }
 
 extension RepeatRuleX on RepeatRule {
@@ -22,6 +25,8 @@ class Activity {
     this.weekdays = const [],
     this.sound = 'default',
     this.enabled = true,
+    this.priority = Priority.normal,
+    this.categoryId = CategoryPresets.otherId,
     List<String>? completedDays,
     required this.notificationId,
   }) : completedDays = completedDays ?? [];
@@ -43,6 +48,13 @@ class Activity {
   /// `false` coupe les rappels sans supprimer l'activité.
   final bool enabled;
 
+  /// Priorité de l'activité (tie-break de tri après l'heure).
+  final Priority priority;
+
+  /// Identifiant de la catégorie (voir [Category]). Retombe sur
+  /// [CategoryPresets.otherId] si la catégorie n'existe plus.
+  final String categoryId;
+
   final List<String> completedDays;
   final int notificationId;
 
@@ -57,6 +69,8 @@ class Activity {
     List<int> weekdays = const [],
     String sound = 'default',
     bool enabled = true,
+    Priority priority = Priority.normal,
+    String categoryId = CategoryPresets.otherId,
     int? notificationId,
   }) {
     return Activity(
@@ -69,6 +83,8 @@ class Activity {
       weekdays: weekdays,
       sound: sound,
       enabled: enabled,
+      priority: priority,
+      categoryId: categoryId,
       notificationId: notificationId ?? newNotificationId(),
     );
   }
@@ -106,6 +122,8 @@ class Activity {
     List<int>? weekdays,
     String? sound,
     bool? enabled,
+    Priority? priority,
+    String? categoryId,
     List<String>? completedDays,
     int? notificationId,
   }) {
@@ -119,6 +137,8 @@ class Activity {
       weekdays: weekdays ?? this.weekdays,
       sound: sound ?? this.sound,
       enabled: enabled ?? this.enabled,
+      priority: priority ?? this.priority,
+      categoryId: categoryId ?? this.categoryId,
       completedDays: completedDays ?? this.completedDays,
       notificationId: notificationId ?? this.notificationId,
     );
@@ -142,6 +162,8 @@ class Activity {
       weekdays: weekdays,
       sound: sound,
       enabled: enabled,
+      priority: priority,
+      categoryId: categoryId,
       completedDays: set.toList()..sort(),
       notificationId: notificationId,
     );
@@ -169,6 +191,8 @@ class Activity {
         'weekdays': weekdays,
         'sound': sound,
         'enabled': enabled,
+        'priority': priority.name,
+        'categoryId': categoryId,
         'completedDays': completedDays,
         'notificationId': notificationId,
       };
@@ -183,6 +207,8 @@ class Activity {
         weekdays: (map['weekdays'] as List?)?.cast<int>() ?? const [],
         sound: (map['sound'] as String?) ?? 'default',
         enabled: (map['enabled'] as bool?) ?? true,
+        priority: PriorityX.fromName(map['priority'] as String?),
+        categoryId: (map['categoryId'] as String?) ?? CategoryPresets.otherId,
         completedDays: (map['completedDays'] as List?)?.cast<String>() ?? [],
         notificationId: map['notificationId'] as int,
       );

@@ -4,11 +4,15 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../app_info.dart';
 import '../l10n/l10n.dart';
 import '../models/app_settings.dart';
+import '../models/category.dart';
 import '../models/lock_settings.dart';
 import '../models/sound_option.dart';
 import '../providers/providers.dart';
 import '../services/custom_sound_service.dart';
 import '../services/sound_preview_service.dart';
+import '../theme/app_theme.dart';
+import '../widgets/app_dialog.dart';
+import '../widgets/category_editor_dialog.dart';
 import '../widgets/lock_setup.dart';
 import '../widgets/section_header.dart';
 import '../widgets/sound_picker_sheet.dart';
@@ -209,6 +213,12 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
               ),
             ],
           ),
+          const SizedBox(height: 24),
+          SectionHeader.label(
+            s.categories,
+            padding: const EdgeInsets.fromLTRB(4, 0, 4, 10),
+          ),
+          _CategoriesSection(),
           const SizedBox(height: 24),
           SectionHeader.label(
             s.security,
@@ -545,6 +555,164 @@ class _SecuritySectionState extends ConsumerState<_SecuritySection> {
           ],
         ],
       ],
+    );
+  }
+}
+
+/// Section « Catégories » : liste des catégories avec compteur d'activités,
+/// création, renommage, édition et suppression (avec réassignation vers
+/// « Autre »). Les catégories intégrées sont fixes (noms traduits) et ne
+/// peuvent être ni modifiées ni supprimées.
+class _CategoriesSection extends ConsumerWidget {
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final s = ref.watch(stringsProvider);
+    final scheme = Theme.of(context).colorScheme;
+    final categories = ref.watch(categoriesProvider);
+    final activities = ref.watch(activitiesProvider);
+
+    final counts = <String, int>{};
+    for (final a in activities) {
+      counts[a.categoryId] = (counts[a.categoryId] ?? 0) + 1;
+    }
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        _SectionCard(
+          children: [
+            for (final c in categories) ...[
+              ListTile(
+                contentPadding: EdgeInsets.zero,
+                leading: _CategoryAvatar(category: c),
+                title: Text(
+                  c.displayName(s),
+                  style: const TextStyle(fontWeight: FontWeight.w600),
+                ),
+                subtitle: Text(s.activitiesLabel(counts[c.id] ?? 0)),
+                trailing: c.builtin
+                    ? null
+                    : Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          IconButton(
+                            tooltip: s.edit,
+                            onPressed: () => _editCategory(ref, context, c),
+                            icon: Icon(
+                              Icons.edit_outlined,
+                              size: 20,
+                              color: scheme.outline,
+                            ),
+                          ),
+                          IconButton(
+                            tooltip: s.delete,
+                            onPressed: () => _deleteCategory(ref, context, c),
+                            icon: Icon(
+                              Icons.delete_outline,
+                              size: 20,
+                              color: scheme.outline,
+                            ),
+                          ),
+                        ],
+                      ),
+              ),
+              const Divider(height: 1),
+            ],
+            const SizedBox(height: 4),
+            OutlinedButton.icon(
+              onPressed: () => _createCategory(ref, context),
+              icon: const Icon(Icons.add),
+              label: Text(s.newCategory),
+            ),
+          ],
+        ),
+      ],
+    );
+  }
+
+  Future<void> _createCategory(WidgetRef ref, BuildContext context) async {
+    final data =
+        await showCategoryEditorDialog(context, title: context.l10n.newCategory);
+    if (data == null || !context.mounted) return;
+    final category = Category.create(
+      name: data.name,
+      icon: data.icon,
+      colorIndex: data.colorIndex,
+    );
+    await ref.read(categoriesProvider.notifier).create(category);
+  }
+
+  Future<void> _editCategory(
+      WidgetRef ref, BuildContext context, Category category) async {
+    final s = context.l10n;
+    final data = await showCategoryEditorDialog(
+      context,
+      initialName: category.displayName(s),
+      initialIcon: category.icon,
+      initialColorIndex: category.colorIndex,
+      title: s.editCategory,
+    );
+    if (data == null || !context.mounted) return;
+
+    // Les catégories intégrées sont fixes : seule une édition n'a pas lieu
+    // d'être ici (l'UI ne les affiche pas), garde défensive pour la clarté.
+    if (category.builtin) return;
+
+    final next = category.copyWith(
+      name: data.name.trim(),
+      icon: data.icon,
+      colorIndex: data.colorIndex,
+    );
+    await ref.read(categoriesProvider.notifier).update(next);
+  }
+
+  Future<void> _deleteCategory(
+      WidgetRef ref, BuildContext context, Category category) async {
+    if (category.isFallback) return; // la catégorie de repli n'est jamais supprimable
+    final s = context.l10n;
+    final activities = ref.read(activitiesProvider);
+    final affected =
+        activities.where((a) => a.categoryId == category.id).toList();
+
+    final ok = await showConfirmDialog(
+      context,
+      title: s.deleteCategoryTitle,
+      body: s.deleteCategoryBody(category.displayName(s), affected.length),
+      confirmLabel: s.delete,
+    );
+    if (ok != true || !context.mounted) return;
+
+    // 1. Réassigner puis sauver les activités (avant la suppression).
+    if (affected.isNotEmpty) {
+      final reassigned = [
+        for (final a in affected)
+          a.copyWith(categoryId: CategoryPresets.otherId),
+      ];
+      await ref.read(activitiesProvider.notifier).updateAll(reassigned);
+    }
+    // 2. Supprimer puis sauver les catégories.
+    await ref.read(categoriesProvider.notifier).delete(category.id);
+  }
+}
+
+/// Pastille colorée avec l'émoji de la catégorie.
+class _CategoryAvatar extends StatelessWidget {
+  const _CategoryAvatar({required this.category});
+
+  final Category category;
+
+  @override
+  Widget build(BuildContext context) {
+    final color = AppTheme.categoryColor(category.colorIndex);
+    return Container(
+      width: 40,
+      height: 40,
+      alignment: Alignment.center,
+      decoration: BoxDecoration(
+        color: color.withValues(alpha: 0.18),
+        shape: BoxShape.circle,
+      ),
+      child: Text(category.icon, style: const TextStyle(fontSize: 17)),
     );
   }
 }

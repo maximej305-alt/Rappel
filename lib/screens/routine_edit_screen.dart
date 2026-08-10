@@ -3,6 +3,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../l10n/l10n.dart';
 import '../models/activity.dart';
+import '../models/activity_priority.dart';
+import '../models/category.dart';
 import '../models/routine.dart';
 import '../models/routine_template.dart';
 import '../models/sound_option.dart';
@@ -12,6 +14,8 @@ import '../services/notification_service.dart';
 import '../services/routine_service.dart';
 import '../services/sound_preview_service.dart';
 import '../utils/dates.dart';
+import '../widgets/category_picker_sheet.dart';
+import '../widgets/priority_selector.dart';
 import '../widgets/repeat_selector.dart';
 import '../widgets/section_header.dart';
 import '../widgets/selector_tile.dart';
@@ -64,6 +68,8 @@ class _RoutineEditScreenState extends ConsumerState<RoutineEditScreen> {
             weekdays: List.of(a.weekdays),
             sound: a.sound,
             date: a.date,
+            priority: a.priority,
+            categoryId: a.categoryId,
           ),
       ];
     } else {
@@ -163,6 +169,8 @@ class _RoutineEditScreenState extends ConsumerState<RoutineEditScreen> {
               weekdays: List.of(updated.weekdays),
               sound: updated.sound,
               date: updated.date,
+              priority: updated.priority,
+              categoryId: updated.categoryId,
             );
           });
         }
@@ -210,6 +218,8 @@ class _RoutineEditScreenState extends ConsumerState<RoutineEditScreen> {
             weekdays: r.weekdays,
             sound: r.sound,
             date: r.date,
+            priority: r.priority,
+            categoryId: r.categoryId,
           ),
       ],
       usedIds: used,
@@ -405,6 +415,8 @@ class _ActivityDraft {
     required this.weekdays,
     required this.sound,
     required this.date,
+    this.priority = Priority.normal,
+    this.categoryId = CategoryPresets.otherId,
   });
 
   /// Non nul quand la ligne référence une activité déjà enregistrée.
@@ -416,6 +428,8 @@ class _ActivityDraft {
   final List<int> weekdays;
   final String sound;
   final DateTime date;
+  final Priority priority;
+  final String categoryId;
 }
 
 class _TemplatePicker extends StatelessWidget {
@@ -690,16 +704,17 @@ class _TinyButton extends StatelessWidget {
 
 /// Feuille d'édition d'une activité de routine (nom, heure, répétition,
 /// jours, date, son). Retourne le brouillon modifié via `Navigator.pop`.
-class _RoutineActivitySheet extends StatefulWidget {
+class _RoutineActivitySheet extends ConsumerStatefulWidget {
   const _RoutineActivitySheet({required this.initial});
 
   final _ActivityDraft initial;
 
   @override
-  State<_RoutineActivitySheet> createState() => _RoutineActivitySheetState();
+  ConsumerState<_RoutineActivitySheet> createState() =>
+      _RoutineActivitySheetState();
 }
 
-class _RoutineActivitySheetState extends State<_RoutineActivitySheet> {
+class _RoutineActivitySheetState extends ConsumerState<_RoutineActivitySheet> {
   final _formKey = GlobalKey<FormState>();
   late final TextEditingController _nameController;
   late TimeOfDay _time;
@@ -707,6 +722,8 @@ class _RoutineActivitySheetState extends State<_RoutineActivitySheet> {
   late RepeatRule _repeat;
   late List<int> _weekdays;
   late String _sound;
+  late Priority _priority;
+  late String _categoryId;
 
   @override
   void initState() {
@@ -718,6 +735,8 @@ class _RoutineActivitySheetState extends State<_RoutineActivitySheet> {
     _repeat = d.repeat;
     _weekdays = List.of(d.weekdays);
     _sound = d.sound;
+    _priority = d.priority;
+    _categoryId = d.categoryId;
   }
 
   @override
@@ -755,6 +774,18 @@ class _RoutineActivitySheetState extends State<_RoutineActivitySheet> {
     if (chosen != null && mounted) setState(() => _sound = chosen.id);
   }
 
+  Future<void> _pickCategory() async {
+    final chosen =
+        await showCategoryPickerSheet(context, currentId: _categoryId);
+    if (chosen != null && mounted) setState(() => _categoryId = chosen.id);
+  }
+
+  String _categoryValue(BuildContext context) {
+    final category = ref.watch(categoryByIdProvider(_categoryId));
+    final s = context.l10n;
+    return category?.displayName(s) ?? s.categoryOther;
+  }
+
   void _save() {
     if (!_formKey.currentState!.validate()) return;
     Navigator.of(context).pop(
@@ -767,6 +798,8 @@ class _RoutineActivitySheetState extends State<_RoutineActivitySheet> {
             _repeat == RepeatRule.weekly ? List.of(_weekdays) : const [],
         sound: _sound,
         date: _date,
+        priority: _priority,
+        categoryId: _categoryId,
       ),
     );
   }
@@ -841,6 +874,21 @@ class _RoutineActivitySheetState extends State<_RoutineActivitySheet> {
                 title: s.notificationSound,
                 value: soundLabel(SoundOption.fromId(_sound), s),
                 onTap: _pickSound,
+              ),
+              const SizedBox(height: 20),
+              SectionHeader.label(s.priority),
+              const SizedBox(height: 8),
+              PrioritySelector(
+                selected: _priority,
+                onSelected: (p) => setState(() => _priority = p),
+              ),
+              const SizedBox(height: 12),
+              SelectorTile(
+                dense: true,
+                icon: Icons.label_outline,
+                title: s.category,
+                value: _categoryValue(context),
+                onTap: _pickCategory,
               ),
               const SizedBox(height: 20),
               SectionHeader.label(s.repeat),

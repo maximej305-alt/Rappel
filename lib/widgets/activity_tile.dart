@@ -1,8 +1,12 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../l10n/l10n.dart';
 import '../models/activity.dart';
+import '../models/activity_priority.dart';
+import '../models/category.dart';
 import '../models/sound_option.dart';
+import '../providers/providers.dart';
 
 class ActivityTile extends StatelessWidget {
   const ActivityTile({
@@ -29,6 +33,12 @@ class ActivityTile extends StatelessWidget {
         '${activity.hour.toString().padLeft(2, '0')}:${activity.minute.toString().padLeft(2, '0')}';
 
     final subtitle = muted ? context.l10n.remindersOff : _repeatLabel(context);
+    final priorityColor = switch (activity.priority) {
+      Priority.normal => null,
+      Priority.important => Theme.of(context).colorScheme.tertiary,
+      Priority.urgent => Theme.of(context).colorScheme.error,
+    };
+    final urgent = activity.priority == Priority.urgent;
 
     return Card(
       child: InkWell(
@@ -39,26 +49,57 @@ class ActivityTile extends StatelessWidget {
           child: Row(
             children: [
               // Heure : case fixe et alignée.
-              Container(
+              SizedBox(
                 width: 58,
                 height: 44,
-                alignment: Alignment.center,
-                decoration: BoxDecoration(
-                  color: completed
-                      ? scheme.primaryContainer.withValues(alpha: 0.7)
-                      : scheme.primary.withValues(alpha: 0.12),
-                  borderRadius: BorderRadius.circular(14),
-                ),
-                child: Text(
-                  time,
-                  style: TextStyle(
-                    fontSize: 14,
-                    fontWeight: FontWeight.w800,
-                    letterSpacing: 0.2,
-                    color: completed
-                        ? scheme.onPrimaryContainer
-                        : scheme.primary,
-                  ),
+                child: Stack(
+                  children: [
+                    Positioned.fill(
+                      child: Container(
+                        alignment: Alignment.center,
+                        decoration: BoxDecoration(
+                          color: completed
+                              ? scheme.primaryContainer.withValues(alpha: 0.7)
+                              : scheme.primary.withValues(alpha: 0.12),
+                          borderRadius: BorderRadius.circular(14),
+                        ),
+                        child: Text(
+                          time,
+                          style: TextStyle(
+                            fontSize: 14,
+                            fontWeight: FontWeight.w800,
+                            letterSpacing: 0.2,
+                            color: completed
+                                ? scheme.onPrimaryContainer
+                                : scheme.primary,
+                          ),
+                        ),
+                      ),
+                    ),
+                    // Indicateur discret de priorité (aucun si normale).
+                    if (priorityColor != null)
+                      Positioned(
+                        top: urgent ? 5 : 6,
+                        right: urgent ? 5 : 6,
+                        child: Container(
+                          width: urgent ? 11 : 8,
+                          height: urgent ? 11 : 8,
+                          decoration: BoxDecoration(
+                            color: priorityColor,
+                            shape: BoxShape.circle,
+                            boxShadow: urgent
+                                ? [
+                                    BoxShadow(
+                                      color:
+                                          priorityColor.withValues(alpha: 0.45),
+                                      blurRadius: 4,
+                                    ),
+                                  ]
+                                : null,
+                          ),
+                        ),
+                      ),
+                  ],
                 ),
               ),
               const SizedBox(width: 14),
@@ -86,6 +127,11 @@ class ActivityTile extends StatelessWidget {
                     const SizedBox(height: 3),
                     Row(
                       children: [
+                        // Icône de catégorie (masquée pour « Autre »).
+                        if (activity.categoryId != CategoryPresets.otherId)
+                          _CategoryIcon(categoryId: activity.categoryId),
+                        if (activity.categoryId != CategoryPresets.otherId)
+                          const SizedBox(width: 5),
                         Icon(
                           SoundOption.fromId(activity.sound).icon,
                           size: 13,
@@ -174,5 +220,20 @@ class ActivityTile extends StatelessWidget {
       case RepeatRule.monthly:
         return s.monthly;
     }
+  }
+}
+
+/// Petite icône (émoji) de la catégorie, masquée si la catégorie n'existe plus.
+class _CategoryIcon extends ConsumerWidget {
+  const _CategoryIcon({required this.categoryId});
+
+  final String categoryId;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final category = ref.watch(categoryByIdProvider(categoryId));
+    final icon = category?.icon;
+    if (icon == null || icon.isEmpty) return const SizedBox.shrink();
+    return Text(icon, style: const TextStyle(fontSize: 13));
   }
 }

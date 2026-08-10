@@ -31,6 +31,8 @@ abstract final class RoutineService {
         weekdays: weekdays,
         sound: d.sound,
         enabled: enabled,
+        priority: d.priority,
+        categoryId: d.categoryId,
         notificationId: NotificationService.allocateFreshId(
           used,
           repeat: d.repeat,

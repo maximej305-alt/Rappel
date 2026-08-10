@@ -6,6 +6,7 @@ import '../l10n/l10n.dart';
 import '../models/activity.dart';
 import '../providers/providers.dart';
 import '../theme/app_theme.dart';
+import '../utils/activity_sort.dart';
 import '../widgets/activity_tile.dart';
 import '../widgets/app_dialog.dart';
 import '../widgets/app_empty_state.dart';
@@ -31,8 +32,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
     final today = DateTime.now();
 
     final todays = activities.where((a) => a.isDueOn(today)).toList()
-      ..sort(
-          (a, b) => (a.hour * 60 + a.minute).compareTo(b.hour * 60 + b.minute));
+      ..sort(compareActivities);
 
     final done = todays.where((a) => a.isCompletedOn(today)).length;
     final habitStats = ref.watch(habitStatsProvider);

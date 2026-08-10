@@ -5,6 +5,7 @@ import 'package:local_auth/local_auth.dart';
 import '../l10n/app_strings.dart';
 import '../models/activity.dart';
 import '../models/app_settings.dart';
+import '../models/category.dart';
 import '../models/lock_settings.dart';
 import '../models/routine.dart';
 import '../services/custom_sound_service.dart';
@@ -66,6 +67,15 @@ class ActivitiesNotifier extends StateNotifier<List<Activity>> {
     await _storage.saveActivities(state);
   }
 
+  /// Mise à jour en lot (réassignation de catégorie) : un seul `setState`
+  /// + une seule écriture Hive.
+  Future<void> updateAll(List<Activity> updates) async {
+    if (updates.isEmpty) return;
+    final byId = {for (final u in updates) u.id: u};
+    state = [for (final a in state) byId.containsKey(a.id) ? byId[a.id]! : a];
+    await _storage.saveActivities(state);
+  }
+
   Future<void> toggleCompleted(String id, DateTime day) async {
     state = [
       for (final a in state)
@@ -86,6 +96,50 @@ final activitiesProvider =
 final habitStatsProvider = Provider<HabitStats>((ref) {
   final activities = ref.watch(activitiesProvider);
   return StatsCalculator.compute(activities, DateTime.now());
+});
+
+/// Notifier des catégories. La catégorie de repli « Autre » est protégée :
+/// [delete] ne l'écrase jamais (les activités la référençant doivent être
+/// réassignées par l'appelant avant suppression).
+class CategoriesNotifier extends StateNotifier<List<Category>> {
+  CategoriesNotifier(this._storage) : super(const []);
+
+  final StorageService _storage;
+
+  void load() => state = _storage.loadCategories();
+
+  Future<void> create(Category category) async {
+    state = [...state, category];
+    await _storage.saveCategories(state);
+  }
+
+  Future<void> update(Category category) async {
+    state = [for (final c in state) c.id == category.id ? category : c];
+    await _storage.saveCategories(state);
+  }
+
+  Future<void> delete(String id) async {
+    final target = state.where((c) => c.id == id).toList();
+    if (target.isEmpty || target.first.isFallback) return;
+    state = state.where((c) => c.id != id).toList();
+    await _storage.saveCategories(state);
+  }
+}
+
+final categoriesProvider =
+    StateNotifierProvider<CategoriesNotifier, List<Category>>((ref) {
+  final storage = ref.watch(storageServiceProvider);
+  return CategoriesNotifier(storage)..load();
+});
+
+/// Résout une catégorie par identifiant ; `null` si elle n'existe plus
+/// (les activités tombent alors sur la catégorie de repli « Autre »).
+final categoryByIdProvider = Provider.family<Category?, String>((ref, id) {
+  final categories = ref.watch(categoriesProvider);
+  for (final c in categories) {
+    if (c.id == id) return c;
+  }
+  return null;
 });
 
 /// Notifier des routines : groupe de références vers les activités globales.

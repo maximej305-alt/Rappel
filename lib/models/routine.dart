@@ -1,6 +1,8 @@
 import 'package:uuid/uuid.dart';
 
 import 'activity.dart';
+import 'activity_priority.dart';
+import 'category.dart';
 
 /// Groupe logique d'activités.
 ///
@@ -102,6 +104,8 @@ class RoutineActivityDraft {
     this.repeat = RepeatRule.daily,
     this.weekdays = const [],
     this.sound = 'default',
+    this.priority = Priority.normal,
+    this.categoryId = CategoryPresets.otherId,
     this.date,
   });
 
@@ -111,6 +115,8 @@ class RoutineActivityDraft {
   final RepeatRule repeat;
   final List<int> weekdays;
   final String sound;
+  final Priority priority;
+  final String categoryId;
 
   /// Date de départ (une seule fois). `null` → aujourd'hui.
   final DateTime? date;

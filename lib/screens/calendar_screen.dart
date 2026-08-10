@@ -5,6 +5,7 @@ import 'package:table_calendar/table_calendar.dart';
 import '../l10n/l10n.dart';
 import '../models/activity.dart';
 import '../providers/providers.dart';
+import '../utils/activity_sort.dart';
 import '../utils/dates.dart';
 import '../widgets/activity_tile.dart';
 import '../widgets/app_dialog.dart';
@@ -31,8 +32,7 @@ class _CalendarScreenState extends ConsumerState<CalendarScreen> {
 
     final selectedActivities =
         activities.where((a) => a.isDueOn(_selectedDay)).toList()
-      ..sort(
-          (a, b) => (a.hour * 60 + a.minute).compareTo(b.hour * 60 + b.minute));
+      ..sort(compareActivities);
 
     final events = <DateTime, List<Activity>>{};
     final monthStart = DateTime(_focusedDay.year, _focusedDay.month, 1)

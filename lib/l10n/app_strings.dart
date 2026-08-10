@@ -299,6 +299,31 @@ class AppStrings {
   String get tmplRun => _('tmplRun');
   String get tmplStretch => _('tmplStretch');
 
+  // ————— Priorités & Catégories —————
+  String get priority => _('priority');
+  String get priorityNormal => _('priorityNormal');
+  String get priorityImportant => _('priorityImportant');
+  String get priorityUrgent => _('priorityUrgent');
+  String get category => _('category');
+  String get categories => _('categories');
+  String get createCategory => _('createCategory');
+  String get newCategory => _('newCategory');
+  String get editCategory => _('editCategory');
+  String get categoryName => _('categoryName');
+  String get categoryNameHint => _('categoryNameHint');
+  String get categoryNameError => _('categoryNameError');
+  String get categoryIcon => _('categoryIcon');
+  String get categoryColor => _('categoryColor');
+  String get deleteCategoryTitle => _('deleteCategoryTitle');
+  String deleteCategoryBody(String name, int count) => _('deleteCategoryBody')
+      .replaceAll('{name}', name)
+      .replaceAll('{count}', '$count');
+  String get categoryPersonal => _('categoryPersonal');
+  String get categoryWork => _('categoryWork');
+  String get categoryStudy => _('categoryStudy');
+  String get categorySport => _('categorySport');
+  String get categoryOther => _('categoryOther');
+
   static const fr = AppStrings({
     'appName': 'Rappel +',
     'cancel': 'Annuler',
@@ -560,6 +585,29 @@ class AppStrings {
     'tmplWarmup': 'Échauffement',
     'tmplRun': 'Course',
     'tmplStretch': 'Étirements',
+
+    'priority': 'Priorité',
+    'priorityNormal': 'Normal',
+    'priorityImportant': 'Important',
+    'priorityUrgent': 'Urgent',
+    'category': 'Catégorie',
+    'categories': 'Catégories',
+    'createCategory': 'Créer une catégorie',
+    'newCategory': 'Nouvelle catégorie',
+    'editCategory': 'Modifier la catégorie',
+    'categoryName': 'Nom de la catégorie',
+    'categoryNameHint': 'Ex. : Santé, Famille…',
+    'categoryNameError': 'Donne un nom',
+    'categoryIcon': 'Icône',
+    'categoryColor': 'Couleur',
+    'deleteCategoryTitle': 'Supprimer la catégorie ?',
+    'deleteCategoryBody':
+        '« {name} » et ses {count} activités seront déplacés vers « Autre ».',
+    'categoryPersonal': 'Personnel',
+    'categoryWork': 'Travail',
+    'categoryStudy': 'Études',
+    'categorySport': 'Sport',
+    'categoryOther': 'Autre',
   });
 
   static const en = AppStrings({
@@ -823,5 +871,28 @@ class AppStrings {
     'tmplWarmup': 'Warm-up',
     'tmplRun': 'Run',
     'tmplStretch': 'Stretching',
+
+    'priority': 'Priority',
+    'priorityNormal': 'Normal',
+    'priorityImportant': 'Important',
+    'priorityUrgent': 'Urgent',
+    'category': 'Category',
+    'categories': 'Categories',
+    'createCategory': 'Create a category',
+    'newCategory': 'New category',
+    'editCategory': 'Edit category',
+    'categoryName': 'Category name',
+    'categoryNameHint': 'Ex.: Health, Family…',
+    'categoryNameError': 'Enter a name',
+    'categoryIcon': 'Icon',
+    'categoryColor': 'Color',
+    'deleteCategoryTitle': 'Delete the category?',
+    'deleteCategoryBody':
+        '« {name} » and its {count} activities will be moved to « Other ».',
+    'categoryPersonal': 'Personal',
+    'categoryWork': 'Work',
+    'categoryStudy': 'Studies',
+    'categorySport': 'Sport',
+    'categoryOther': 'Other',
   });
 }

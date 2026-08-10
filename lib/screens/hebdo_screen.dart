@@ -5,6 +5,7 @@ import 'package:intl/intl.dart';
 import '../l10n/l10n.dart';
 import '../models/activity.dart';
 import '../providers/providers.dart';
+import '../utils/activity_sort.dart';
 import '../widgets/activity_tile.dart';
 import '../widgets/app_dialog.dart';
 import '../widgets/app_empty_state.dart';
@@ -46,8 +47,7 @@ class _HebdoScreenState extends ConsumerState<HebdoScreen> {
     final scheme = Theme.of(context).colorScheme;
 
     final dayActivities = activities.where((a) => a.isDueOn(_selectedDay)).toList()
-      ..sort(
-          (a, b) => (a.hour * 60 + a.minute).compareTo(b.hour * 60 + b.minute));
+      ..sort(compareActivities);
 
     final weekDays = [
       for (var i = 0; i < 7; i++) _weekStart.add(Duration(days: i)),

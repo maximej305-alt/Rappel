@@ -3,12 +3,16 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../l10n/l10n.dart';
 import '../models/activity.dart';
+import '../models/activity_priority.dart';
+import '../models/category.dart';
 import '../models/sound_option.dart';
 import '../providers/providers.dart';
 import '../services/custom_sound_service.dart';
 import '../services/notification_service.dart';
 import '../services/sound_preview_service.dart';
 import '../utils/dates.dart';
+import '../widgets/category_picker_sheet.dart';
+import '../widgets/priority_selector.dart';
 import '../widgets/repeat_selector.dart';
 import '../widgets/section_header.dart';
 import '../widgets/selector_tile.dart';
@@ -33,6 +37,8 @@ class _AddActivityScreenState extends ConsumerState<AddActivityScreen> {
   late List<int> _weekdays;
   late String _sound;
   late bool _enabled;
+  late Priority _priority;
+  late String _categoryId;
 
   bool get _isEditing => widget.editingActivity != null;
 
@@ -47,6 +53,8 @@ class _AddActivityScreenState extends ConsumerState<AddActivityScreen> {
       _weekdays = List.of(editing.weekdays);
       _sound = editing.sound;
       _enabled = editing.enabled;
+      _priority = editing.priority;
+      _categoryId = editing.categoryId;
       _nameController.text = editing.name;
     } else {
       _time = const TimeOfDay(hour: 12, minute: 0);
@@ -55,6 +63,8 @@ class _AddActivityScreenState extends ConsumerState<AddActivityScreen> {
       _weekdays = [DateTime.now().weekday];
       _sound = ref.read(settingsProvider).defaultSound;
       _enabled = true;
+      _priority = Priority.normal;
+      _categoryId = CategoryPresets.otherId;
     }
   }
 
@@ -94,6 +104,11 @@ class _AddActivityScreenState extends ConsumerState<AddActivityScreen> {
     if (chosen != null && mounted) setState(() => _sound = chosen.id);
   }
 
+  Future<void> _pickCategory() async {
+    final chosen = await showCategoryPickerSheet(context, currentId: _categoryId);
+    if (chosen != null && mounted) setState(() => _categoryId = chosen.id);
+  }
+
   Future<void> _save() async {
     if (!_formKey.currentState!.validate()) return;
 
@@ -125,6 +140,8 @@ class _AddActivityScreenState extends ConsumerState<AddActivityScreen> {
           weekdays: _repeat == RepeatRule.weekly ? List.of(_weekdays) : null,
           sound: _sound,
           enabled: _enabled,
+          priority: _priority,
+          categoryId: _categoryId,
         ),
         others,
       );
@@ -144,6 +161,8 @@ class _AddActivityScreenState extends ConsumerState<AddActivityScreen> {
         weekdays: weekdays,
         sound: _sound,
         enabled: _enabled,
+        priority: _priority,
+        categoryId: _categoryId,
         notificationId: NotificationService.allocateFreshId(
           NotificationService.usedNotificationIds(
               ref.read(activitiesProvider)),
@@ -162,6 +181,8 @@ class _AddActivityScreenState extends ConsumerState<AddActivityScreen> {
   @override
   Widget build(BuildContext context) {
     final s = context.l10n;
+    final category = ref.watch(categoryByIdProvider(_categoryId));
+    final categoryValue = category?.displayName(s) ?? s.categoryOther;
     return Scaffold(
       appBar: AppBar(
         title: Text(_isEditing ? s.editActivity : s.newActivity),
@@ -215,6 +236,20 @@ class _AddActivityScreenState extends ConsumerState<AddActivityScreen> {
               title: s.notificationSound,
               value: soundLabel(SoundOption.fromId(_sound), s),
               onTap: _pickSound,
+            ),
+            const SizedBox(height: 24),
+            SectionHeader.label(s.priority),
+            const SizedBox(height: 10),
+            PrioritySelector(
+              selected: _priority,
+              onSelected: (p) => setState(() => _priority = p),
+            ),
+            const SizedBox(height: 12),
+            SelectorTile(
+              icon: Icons.label_outline,
+              title: s.category,
+              value: categoryValue,
+              onTap: _pickCategory,
             ),
             const SizedBox(height: 24),
             SectionHeader.label(s.repeat),

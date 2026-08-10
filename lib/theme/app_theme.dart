@@ -9,6 +9,20 @@ class AppTheme {
   static const seed = Color(0xFF4F5DFF);
   static const seedDark = Color(0xFF9AA5FF);
 
+  /// Palette des catégories (indice via `Category.colorIndex`).
+  static const List<Color> categoryPalette = [
+    Color(0xFF4F5DFF),
+    Color(0xFFE85D4A),
+    Color(0xFF2E9E6B),
+    Color(0xFFE0A53B),
+    Color(0xFF8B6FE8),
+    Color(0xFF3FB6C9),
+  ];
+
+  /// Couleur d'une catégorie selon son [Category.colorIndex], cyclique.
+  static Color categoryColor(int index) =>
+      categoryPalette[index % categoryPalette.length];
+
   /// Dégradé d'en-tête.
   static const headerGradient = LinearGradient(
     begin: Alignment.centerLeft,

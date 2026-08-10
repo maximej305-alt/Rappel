@@ -4,7 +4,9 @@ import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:hive_flutter/hive_flutter.dart';
 
 import '../models/activity.dart';
+import '../models/activity_priority.dart';
 import '../models/app_settings.dart';
+import '../models/category.dart';
 import '../models/lock_settings.dart';
 import '../models/routine.dart';
 
@@ -14,6 +16,7 @@ class StorageService {
   static const _boxName = 'rappel_plus';
   static const _activitiesKey = 'activities';
   static const _routinesKey = 'routines';
+  static const _categoriesKey = 'categories';
   static const _settingsKey = 'settings';
   static const _lockKey = 'lock';
   static const _hiveKeyStorageKey = 'rappel_plus_hive_key';
@@ -21,7 +24,7 @@ class StorageService {
 
   /// Version courante du schéma Hive. À la moindre évolution des données
   /// stockées : bump + nouvelle entrée dans [_migrations].
-  static const int schemaVersion = 3;
+  static const int schemaVersion = 4;
 
   static final FlutterSecureStorage _secureStorage =
       const FlutterSecureStorage();
@@ -61,6 +64,7 @@ class StorageService {
   static final Map<int, Future<void> Function(Box box)> _migrations = {
     2: _migrateV1ToV2,
     3: _migrateV2ToV3,
+    4: _migrateV3ToV4,
   };
 
   /// v1 → v2 : garantit un `notificationId` à chaque activité enregistrée
@@ -86,6 +90,35 @@ class StorageService {
   static Future<void> _migrateV2ToV3(Box box) async {
     if (box.get(_routinesKey) != null) return; // déjà en place → rien à faire
     await box.put(_routinesKey, <Map<String, dynamic>>[]);
+  }
+
+  /// v3 → v4 : ajoute les catégories intégrées et complète chaque activité
+  /// avec `priority` et `categoryId`. Purement additif et idempotent :
+  /// les valeurs déjà présentes ne sont jamais modifiées.
+  static Future<void> _migrateV3ToV4(Box box) async {
+    if (box.get(_categoriesKey) == null) {
+      await box.put(
+        _categoriesKey,
+        CategoryPresets.builtins.map((c) => c.toMap()).toList(),
+      );
+    }
+    final raw = box.get(_activitiesKey);
+    if (raw == null) return; // aucune donnée existante → rien à migrer
+    var changed = false;
+    final activities = <Map<String, dynamic>>[];
+    for (final e in raw as List) {
+      final map = Map<String, dynamic>.from(e as Map);
+      if (map['priority'] is! String) {
+        map['priority'] = Priority.normal.name;
+        changed = true;
+      }
+      if (map['categoryId'] is! String) {
+        map['categoryId'] = CategoryPresets.otherId;
+        changed = true;
+      }
+      activities.add(map);
+    }
+    if (changed) await box.put(_activitiesKey, activities);
   }
 
   Future<List<int>> _loadOrCreateEncryptionKey() async {
@@ -123,6 +156,21 @@ class StorageService {
     await _box?.put(
       _routinesKey,
       routines.map((r) => r.toMap()).toList(),
+    );
+  }
+
+  List<Category> loadCategories() {
+    final raw = _box?.get(_categoriesKey) as List? ?? const [];
+    if (raw.isEmpty) return List.of(CategoryPresets.builtins);
+    return raw
+        .map((e) => Category.fromMap(Map<String, dynamic>.from(e as Map)))
+        .toList();
+  }
+
+  Future<void> saveCategories(List<Category> categories) async {
+    await _box?.put(
+      _categoriesKey,
+      categories.map((c) => c.toMap()).toList(),
     );
   }
 
