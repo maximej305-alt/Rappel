@@ -1,0 +1,827 @@
+/// Fichier de traduction : toutes les chaînes de l'application.
+/// Le provider [AppStrings.fr] / [AppStrings.en] est choisi selon la langue.
+class AppStrings {
+  const AppStrings(this._t);
+
+  final Map<String, String> _t;
+
+  String _(String key) => _t[key] ?? key;
+
+  /// Accès générique à une clé (utile pour les jours et les sons).
+  String tr(String key) => _t[key] ?? key;
+
+  // ————— Général —————
+  String get appName => _('appName');
+  String get cancel => _('cancel');
+  String get save => _('save');
+  String get delete => _('delete');
+  String get edit => _('edit');
+  String get add => _('add');
+  String get today => _('today');
+  String get tomorrow => _('tomorrow');
+  String get enabled => _('enabled');
+  String get disabled => _('disabled');
+  String get monday => _('monday');
+  String get tuesday => _('tuesday');
+  String get wednesday => _('wednesday');
+  String get thursday => _('thursday');
+  String get friday => _('friday');
+  String get saturday => _('saturday');
+  String get sunday => _('sunday');
+  String get mon => _('mon');
+  String get tue => _('tue');
+  String get wed => _('wed');
+  String get thu => _('thu');
+  String get fri => _('fri');
+  String get sat => _('sat');
+  String get sun => _('sun');
+
+  // ————— Accueil —————
+  String get greetingNight => _('greetingNight');
+  String get greetingMorning => _('greetingMorning');
+  String get greetingAfternoon => _('greetingAfternoon');
+  String get greetingEvening => _('greetingEvening');
+  String get statusNothing => _('statusNothing');
+  String get statusAllDone => _('statusAllDone');
+  String statusLeft(int count) => _('statusLeft').replaceAll('{count}', '$count');
+  String get homeTitle => _('homeTitle');
+  String get addActivity => _('addActivity');
+  String get done => _('done');
+  String get emptyTodayTitle => _('emptyTodayTitle');
+  String get emptyTodayHint => _('emptyTodayHint');
+  String get activityAdded => _('activityAdded');
+  String get streakUnit => _('streakUnit');
+  String get habitTitle => _('habitTitle');
+  String get habitStreak => _('habitStreak');
+  String get habitEmpty => _('habitEmpty');
+  String get habitLast7 => _('habitLast7');
+  String get habitProgress => _('habitProgress');
+  String get deleteConfirmTitle => _('deleteConfirmTitle');
+  String deleteConfirmBody(String name) =>
+      _('deleteConfirmBody').replaceAll('{name}', name);
+  String get weeklyFull => _('weeklyFull');
+  String get weeklyDone => _('weeklyDone');
+  String get weeklyEmpty => _('weeklyEmpty');
+  String get myWeek => _('myWeek');
+  String get prevWeek => _('prevWeek');
+  String get nextWeek => _('nextWeek');
+  String get calendar => _('calendar');
+  String get homeTab => _('homeTab');
+  String get weeklyTab => _('weeklyTab');
+
+  // ————— Nouvelle activité —————
+  String get newActivity => _('newActivity');
+  String get editActivity => _('editActivity');
+  String get nameLabel => _('nameLabel');
+  String get nameHint => _('nameHint');
+  String get nameError => _('nameError');
+  String get time => _('time');
+  String get date => _('date');
+  String get notificationSound => _('notificationSound');
+  String get repeat => _('repeat');
+  String get once => _('once');
+  String get day => _('day');
+  String get days => _('days');
+  String get month => _('month');
+  String get monthly => _('monthly');
+  String get repeatDaily => _('repeatDaily');
+  String get remindersEnabled => _('remindersEnabled');
+  String get remindersOn => _('remindersOn');
+  String get remindersOff => _('remindersOff');
+  String get chooseOneWeekday => _('chooseOneWeekday');
+  String get saveChanges => _('saveChanges');
+
+  // ————— Sons —————
+  String get soundChime1 => _('soundChime1');
+  String get soundChime2 => _('soundChime2');
+  String get soundBeep => _('soundBeep');
+  String get soundBell => _('soundBell');
+  String get soundWhistle => _('soundWhistle');
+  String get soundAlarm => _('soundAlarm');
+  String get soundDefault => _('soundDefault');
+  String get soundCustom => _('soundCustom');
+  String get chooseCustomSound => _('chooseCustomSound');
+  String get chooseCustomSoundHint => _('chooseCustomSoundHint');
+  String get customSoundAdded => _('customSoundAdded');
+  String get pickerError => _('pickerError');
+
+  // ————— Réglages —————
+  String get settings => _('settings');
+  String get appearance => _('appearance');
+  String get theme => _('theme');
+  String get themeLight => _('themeLight');
+  String get themeDark => _('themeDark');
+  String get themeSystem => _('themeSystem');
+  String get language => _('language');
+  String get french => _('french');
+  String get notifications => _('notifications');
+  String get defaultSound => _('defaultSound');
+  String get defaultSoundTitle => _('defaultSoundTitle');
+  String get reminderBefore => _('reminderBefore');
+  String get reminderAtExact => _('reminderAtExact');
+  String reminderMinutes(int n) =>
+      _('reminderMinutes').replaceAll('{n}', '$n');
+  String get trySound => _('trySound');
+  String get trySoundHint => _('trySoundHint');
+  String get test => _('test');
+  String get previewPlay => _('previewPlay');
+  String get previewStop => _('previewStop');
+  String get security => _('security');
+  String get lockApp => _('lockApp');
+  String get lockDisabled => _('lockDisabled');
+  String lockMethod(String method) =>
+      _('lockMethod').replaceAll('{method}', method);
+  String get changeMethod => _('changeMethod');
+  String get modifyCode => _('modifyCode');
+  String get unlockFingerprint => _('unlockFingerprint');
+  String get unlockFingerprintHint => _('unlockFingerprintHint');
+  String get privacy => _('privacy');
+  String get offline => _('offline');
+  String get offlineHint => _('offlineHint');
+  String get lockMethodTitle => _('lockMethodTitle');
+  String get pinLabel => _('pinLabel');
+  String get passwordLabel => _('passwordLabel');
+  String get patternLabel => _('patternLabel');
+  String get biometricLabel => _('biometricLabel');
+  String get pinHint => _('pinHint');
+  String get passwordHint => _('passwordHint');
+  String get patternHint => _('patternHint');
+  String get biometricHint => _('biometricHint');
+  String get lockActivated => _('lockActivated');
+  String get methodChanged => _('methodChanged');
+  String get codeUpdated => _('codeUpdated');
+  String get noBiometric => _('noBiometric');
+
+  // ————— Verrouillage —————
+  String get lockAppTitle => _('lockAppTitle');
+  String get choosePin => _('choosePin');
+  String get confirmPin => _('confirmPin');
+  String get choosePassword => _('choosePassword');
+  String get confirmPassword => _('confirmPassword');
+  String get passwordMin => _('passwordMin');
+  String get passwordPlaceholder => _('passwordPlaceholder');
+  String get min4Chars => _('min4Chars');
+  String get drawPattern => _('drawPattern');
+  String get drawPatternAgain => _('drawPatternAgain');
+  String get patternMin => _('patternMin');
+  String get mismatch => _('mismatch');
+  String get secret => _('secret');
+  String get continueLabel => _('continueLabel');
+  String get verification => _('verification');
+  String get enterToContinue => _('enterToContinue');
+  String get currentPassword => _('currentPassword');
+  String get unlockPin => _('unlockPin');
+  String get unlockPassword => _('unlockPassword');
+  String get unlockPattern => _('unlockPattern');
+  String get unlockBiometric => _('unlockBiometric');
+  String get wrongPin => _('wrongPin');
+  String get wrongPassword => _('wrongPassword');
+  String get wrongPattern => _('wrongPattern');
+  String get passwordField => _('passwordField');
+  String get unlockBtn => _('unlockBtn');
+  String get checking => _('checking');
+  String get touchSensor => _('touchSensor');
+  String get useFingerprint => _('useFingerprint');
+  String get verifyBiometric => _('verifyBiometric');
+  String get tryAgain => _('tryAgain');
+
+  // ————— Notifications natives —————
+  String notifReminder(String name, int minutes, String time) =>
+      _('notifReminder')
+          .replaceAll('{name}', name)
+          .replaceAll('{minutes}', '$minutes')
+          .replaceAll('{time}', time);
+  String notifNow(String name) =>
+      _('notifNow').replaceAll('{name}', name);
+  String get notifTest => _('notifTest');
+  String get notifChannelDesc => _('notifChannelDesc');
+  String channelName(String name) =>
+      _('channelName').replaceAll('{name}', name);
+
+  // ————— Actions rapides —————
+  String get actionDone => _('actionDone');
+  String get actionSnooze5 => _('actionSnooze5');
+  String get actionSnooze10 => _('actionSnooze10');
+  String get actionSnooze30 => _('actionSnooze30');
+  String get actionTomorrow => _('actionTomorrow');
+  String notifDeferred(String name, String time) =>
+      _('notifDeferred').replaceAll('{name}', name).replaceAll('{time}', time);
+  String notifTomorrow(String name, String time) =>
+      _('notifTomorrow').replaceAll('{name}', name).replaceAll('{time}', time);
+
+  // ————— Stats —————
+  String get stats => _('stats');  String get currentStreak => _('currentStreak');
+  String get bestRecord => _('bestRecord');
+  String get daysUnit => _('daysUnit');
+  String get consecutiveDaysUnit => _('consecutiveDaysUnit');
+  String get thisWeek => _('thisWeek');
+  String get routineRespected => _('routineRespected');
+  String get activitiesDone => _('activitiesDone');
+  String get activitiesMissed => _('activitiesMissed');
+  String get weeklyProgress => _('weeklyProgress');
+  String get history => _('history');
+  String get monthlyView => _('monthlyView');
+  String get noHistory => _('noHistory');
+  String get statusRespected => _('statusRespected');
+  String get statusPartial => _('statusPartial');
+  String get statusMissed => _('statusMissed');
+  String get statusNeutral => _('statusNeutral');
+  String get statsEmptyTitle => _('statsEmptyTitle');
+  String get statsEmptyHint => _('statsEmptyHint');
+
+  // ————— Routines —————
+  String get routines => _('routines');
+  String get createRoutine => _('createRoutine');
+  String get routineName => _('routineName');
+  String get routineNameHint => _('routineNameHint');
+  String get routineNameError => _('routineNameError');
+  String get routineDescription => _('routineDescription');
+  String get routineDescriptionHint => _('routineDescriptionHint');
+  String get routineIcon => _('routineIcon');
+  String get routineActivities => _('routineActivities');
+  String get chooseTemplate => _('chooseTemplate');
+  String get addRoutineActivity => _('addRoutineActivity');
+  String get routineActivityTitle => _('routineActivityTitle');
+  String get routineActivityNameHint => _('routineActivityNameHint');
+  String get chooseActivityTime => _('chooseActivityTime');
+  String get activityAddedToRoutine => _('activityAddedToRoutine');
+  String get routineCreated => _('routineCreated');
+  String get routineUpdated => _('routineUpdated');
+  String get routineActive => _('routineActive');
+  String get routineInactive => _('routineInactive');
+  String get pauseRoutine => _('pauseRoutine');
+  String get resumeRoutine => _('resumeRoutine');
+  String get noRoutines => _('noRoutines');
+  String get noRoutinesHint => _('noRoutinesHint');
+  String get routineCreationError => _('routineCreationError');
+  String get routineActivityRequired => _('routineActivityRequired');
+  String get deleteRoutineTitle => _('deleteRoutineTitle');
+  String deleteRoutineBody(String name, int count) =>
+      _('deleteRoutineBody')
+          .replaceAll('{name}', name)
+          .replaceAll('{count}', '$count');
+  String get removeActivityTitle => _('removeActivityTitle');
+  String activitiesLabel(int count) {
+    final key = switch (count) {
+      0 => 'activitiesZero',
+      1 => 'activityOne',
+      _ => 'activitiesLabel',
+    };
+    return _(key).replaceAll('{count}', '$count');
+  }
+  String get editRoutine => _('editRoutine');
+
+  // Modèles prédéfinis.
+  String get tmplMorning => _('tmplMorning');
+  String get tmplEvening => _('tmplEvening');
+  String get tmplWork => _('tmplWork');
+  String get tmplStudy => _('tmplStudy');
+  String get tmplSport => _('tmplSport');
+  String get tmplCustom => _('tmplCustom');
+  String get tmplWakeUp => _('tmplWakeUp');
+  String get tmplWater => _('tmplWater');
+  String get tmplWorkout => _('tmplWorkout');
+  String get tmplShower => _('tmplShower');
+  String get tmplBreakfast => _('tmplBreakfast');
+  String get tmplDinner => _('tmplDinner');
+  String get tmplRelax => _('tmplRelax');
+  String get tmplReading => _('tmplReading');
+  String get tmplBedtime => _('tmplBedtime');
+  String get tmplEmails => _('tmplEmails');
+  String get tmplMeeting => _('tmplMeeting');
+  String get tmplLunchBreak => _('tmplLunchBreak');
+  String get tmplReports => _('tmplReports');
+  String get tmplWrapUp => _('tmplWrapUp');
+  String get tmplReview => _('tmplReview');
+  String get tmplExercises => _('tmplExercises');
+  String get tmplStudyBreak => _('tmplStudyBreak');
+  String get tmplWarmup => _('tmplWarmup');
+  String get tmplRun => _('tmplRun');
+  String get tmplStretch => _('tmplStretch');
+
+  static const fr = AppStrings({
+    'appName': 'Rappel +',
+    'cancel': 'Annuler',
+    'save': 'Enregistrer',
+    'delete': 'Supprimer',
+    'edit': 'Modifier',
+    'add': 'Ajouter',
+    'today': 'Aujourd\'hui',
+    'tomorrow': 'Demain',
+    'enabled': 'Activé',
+    'disabled': 'Désactivé',
+    'monday': 'Le lundi',
+    'tuesday': 'Le mardi',
+    'wednesday': 'Le mercredi',
+    'thursday': 'Le jeudi',
+    'friday': 'Le vendredi',
+    'saturday': 'Le samedi',
+    'sunday': 'Le dimanche',
+    'mon': 'Lun',
+    'tue': 'Mar',
+    'wed': 'Mer',
+    'thu': 'Jeu',
+    'fri': 'Ven',
+    'sat': 'Sam',
+    'sun': 'Dim',
+
+    'greetingNight': 'Bonne nuit',
+    'greetingMorning': 'Bonjour',
+    'greetingAfternoon': 'Bon après-midi',
+    'greetingEvening': 'Bonsoir',
+    'statusNothing': 'Rien de prévu, profite de ta journée',
+    'statusAllDone': 'Tout est terminé, bravo !',
+    'statusLeft': 'Il te reste {count} activité à faire',
+    'homeTitle': 'Rappel +',
+    'addActivity': 'Nouvelle activité',
+    'done': 'faites',
+    'emptyTodayTitle': 'Aucune activité aujourd\'hui',
+    'emptyTodayHint': 'Touche « Nouvelle activité » pour programmer une activité',
+    'activityAdded': 'Activité ajoutée ✓',
+    'streakUnit': 'j',
+    'habitTitle': 'Suivi des habitudes',
+    'habitStreak': 'Jours de routine respectée',
+    'habitEmpty': 'Commence à cocher tes activités quotidiennes !',
+    'habitLast7': '7 derniers jours — progression',
+    'habitProgress': 'progression',
+    'deleteConfirmTitle': 'Supprimer ?',
+    'deleteConfirmBody': 'Supprimer « {name} » et son rappel ?',
+    'weeklyFull': 'jours complétés',
+    'weeklyDone': 'activités cochées',
+    'weeklyEmpty': 'Aucune activité ce jour-là',
+    'myWeek': 'Ma semaine',
+    'prevWeek': 'Semaine précédente',
+    'nextWeek': 'Semaine suivante',
+    'calendar': 'Calendrier',
+    'homeTab': 'Accueil',
+    'weeklyTab': 'Hebdo',
+
+    'newActivity': 'Nouvelle activité',
+    'editActivity': 'Modifier l\'activité',
+    'nameLabel': 'Nom de l\'activité',
+    'nameHint': 'Ex. : Réveil, Ménage…',
+    'nameError': 'Donne un nom',
+    'time': 'Heure',
+    'date': 'Date',
+    'notificationSound': 'Son de notification',
+    'repeat': 'Répétition',
+    'once': 'Une fois',
+    'day': 'Jour',
+    'days': 'Jours',
+    'month': 'Mois',
+    'monthly': 'Chaque mois',
+    'repeatDaily': 'Tous les jours',
+    'remindersEnabled': 'Rappels activés',
+    'remindersOn': 'Tu recevras une notification à l\'heure choisie',
+    'remindersOff': 'L\'activité reste listée mais ne sonnera pas',
+    'chooseOneWeekday': 'Choisis au moins un jour de la semaine',
+    'saveChanges': 'Enregistrer les modifications',
+
+    'soundChime1': 'Carillon',
+    'soundChime2': 'Arpège',
+    'soundBeep': 'Bip',
+    'soundBell': 'Cloche',
+    'soundWhistle': 'Sifflet',
+    'soundAlarm': 'Alarme',
+    'soundDefault': 'Par défaut',
+    'soundCustom': 'Son personnalisé',
+    'chooseCustomSound': 'Choisir un son…',
+    'chooseCustomSoundHint': 'Importe un fichier audio (mp3, wav…)',
+    'customSoundAdded': 'Son personnalisé ajouté ✓',
+    'pickerError': 'Impossible de lire ce fichier audio',
+
+    'settings': 'Paramètres',
+    'appearance': 'Apparence',
+    'theme': 'Thème',
+    'themeLight': 'Clair',
+    'themeDark': 'Sombre',
+    'themeSystem': 'Auto',
+    'language': 'Langue',
+    'french': 'Français',
+    'notifications': 'Notifications',
+    'defaultSound': 'Son par défaut',
+    'defaultSoundTitle': 'Son par défaut des nouvelles activités',
+    'reminderBefore': 'Rappel avant l\'activité',
+    'reminderAtExact': 'À l\'heure exacte',
+    'reminderMinutes': '{n} min avant',
+    'trySound': 'Essayer le son',
+    'trySoundHint': 'Joue l\'aperçu immédiatement',
+    'test': 'Tester',
+    'previewPlay': 'Écouter l\'aperçu',
+    'previewStop': 'Arrêter l\'aperçu',
+    'security': 'Sécurité',
+    'lockApp': 'Verrouiller l\'application',
+    'lockDisabled': 'Désactivé',
+    'lockMethod': 'Méthode : {method}',
+    'changeMethod': 'Changer de méthode',
+    'modifyCode': 'Modifier le code',
+    'unlockFingerprint': 'Déverrouillage par empreinte',
+    'unlockFingerprintHint': 'En plus du code',
+    'privacy': 'Vie privée',
+    'offline': '100 % hors-ligne',
+    'offlineHint': 'Tes données restent sur ton appareil, chiffrées. '
+        'Aucune donnée n\'est collectée, aucun service tiers.',
+    'lockMethodTitle': 'Méthode de verrouillage',
+    'pinLabel': 'Code PIN',
+    'passwordLabel': 'Mot de passe',
+    'patternLabel': 'Motif',
+    'biometricLabel': 'Empreinte digitale',
+    'pinHint': 'Code à 4 chiffres',
+    'passwordHint': 'Mot de passe secret',
+    'patternHint': 'Motif à dessiner',
+    'biometricHint': 'Empreinte ou Face ID',
+    'lockActivated': 'Verrouillage activé',
+    'methodChanged': 'Méthode changée',
+    'codeUpdated': 'Code mis à jour',
+    'noBiometric': 'Ton téléphone ne prend pas en charge '
+        'l\'empreinte digitale. Choisis un code PIN.',
+
+    'lockAppTitle': 'Application verrouillée',
+    'choosePin': 'Choisissez un code PIN',
+    'confirmPin': 'Confirmez le code PIN',
+    'choosePassword': 'Choisissez un mot de passe',
+    'confirmPassword': 'Confirmez le mot de passe',
+    'passwordMin': 'Mot de passe (min. 4 caractères)',
+    'passwordPlaceholder': 'Secret',
+    'min4Chars': 'Minimum 4 caractères',
+    'drawPattern': 'Dessinez votre motif',
+    'drawPatternAgain': 'Dessinez-le à nouveau',
+    'patternMin': 'Motif d\'au moins 4 points',
+    'mismatch': 'Les deux saisies doivent correspondre',
+    'secret': 'Secret',
+    'continueLabel': 'Continuer',
+    'verification': 'Vérification',
+    'enterToContinue': 'Identifiez-vous pour continuer',
+    'currentPassword': 'Mot de passe actuel',
+    'unlockPin': 'Entrez votre code PIN',
+    'unlockPassword': 'Entrez votre mot de passe',
+    'unlockPattern': 'Dessinez votre motif',
+    'unlockBiometric': 'Déverrouillez avec votre empreinte',
+    'wrongPin': 'Code incorrect, réessayez',
+    'wrongPassword': 'Mot de passe incorrect',
+    'wrongPattern': 'Motif incorrect, réessayez',
+    'passwordField': 'Mot de passe',
+    'unlockBtn': 'Déverrouiller',
+    'checking': 'Vérification en cours…',
+    'touchSensor': 'Touchez le capteur',
+    'useFingerprint': 'Utiliser l\'empreinte',
+    'verifyBiometric': 'Déverrouillez Rappel + avec votre empreinte',
+    'tryAgain': 'Réessayer',
+
+    'notifReminder': '« {name} » dans {minutes} min (à {time})',
+    'notifNow': 'C\'est le moment de « {name} »',
+    'notifTest': 'C\'est une notification de test 🎉',
+    'notifChannelDesc': 'Rappels de vos activités',
+    'channelName': 'Rappels - {name}',
+    'actionDone': 'Terminé',
+    'actionSnooze5': '+5 min',
+    'actionSnooze10': '+10 min',
+    'actionSnooze30': '+30 min',
+    'actionTomorrow': 'Demain',
+    'notifDeferred': '« {name} » reporté à {time}',
+    'notifTomorrow': '« {name} » — demain à {time}',
+
+    'stats': 'Stats',
+    'currentStreak': 'Série actuelle',
+    'bestRecord': 'Meilleure série',
+    'daysUnit': 'jours',
+    'consecutiveDaysUnit': 'j. consécutifs',
+    'thisWeek': 'Cette semaine',
+    'routineRespected': 'routine respectée',
+    'activitiesDone': 'terminées',
+    'activitiesMissed': 'manquées',
+    'weeklyProgress': 'Progression hebdo',
+    'history': 'Historique',
+    'monthlyView': 'Vue mensuelle',
+    'noHistory': 'Aucun historique pour l\'instant',
+    'statusRespected': 'Respecté',
+    'statusPartial': 'Partiel',
+    'statusMissed': 'Manqué',
+    'statusNeutral': 'Hors routine',
+    'statsEmptyTitle': 'Pas encore de routine',
+    'statsEmptyHint': 'Crée des activités, puis coche-les chaque jour pour voir ta progression.',
+
+    'routines': 'Routines',
+    'createRoutine': 'Créer une routine',
+    'routineName': 'Nom de la routine',
+    'routineNameHint': 'Ex. : Routine du matin',
+    'routineNameError': 'Donne un nom',
+    'routineDescription': 'Description',
+    'routineDescriptionHint': 'Optionnel',
+    'routineIcon': 'Icône',
+    'routineActivities': 'Activités',
+    'chooseTemplate': 'Choisir un modèle',
+    'addRoutineActivity': 'Ajouter une activité',
+    'routineActivityTitle': 'Activité de la routine',
+    'routineActivityNameHint': 'Ex. : Réveil, Étirements…',
+    'chooseActivityTime': 'Choisir l\'heure',
+    'activityAddedToRoutine': 'Activité ajoutée',
+    'routineCreated': 'Routine créée ✓',
+    'routineUpdated': 'Routine mise à jour ✓',
+    'routineActive': 'Active',
+    'routineInactive': 'En pause',
+    'pauseRoutine': 'Mettre en pause',
+    'resumeRoutine': 'Relancer',
+    'noRoutines': 'Aucune routine',
+    'noRoutinesHint': 'Crée une routine pour lancer plusieurs activités en une fois.',
+    'routineCreationError': 'Impossible d\'enregistrer la routine. Aucune donnée n\'a été modifiée.',
+    'routineActivityRequired': 'Ajoute au moins une activité',
+    'deleteRoutineTitle': 'Supprimer la routine ?',
+    'deleteRoutineBody': '« {name} » et ses {count} activités seront supprimés. Les rappels seront annulés.',
+    'removeActivityTitle': 'Supprimer cette activité ?',
+    'activitiesLabel': '{count} activités',
+    'activityOne': '1 activité',
+    'activitiesZero': '0 activité',
+    'editRoutine': 'Modifier la routine',
+
+    'tmplMorning': 'Routine du matin',
+    'tmplEvening': 'Routine du soir',
+    'tmplWork': 'Routine de travail',
+    'tmplStudy': 'Routine d\'étude',
+    'tmplSport': 'Routine sport',
+    'tmplCustom': 'Routine personnalisée',
+    'tmplWakeUp': 'Réveil',
+    'tmplWater': 'Boire de l\'eau',
+    'tmplWorkout': 'Sport',
+    'tmplShower': 'Douche',
+    'tmplBreakfast': 'Petit-déjeuner',
+    'tmplDinner': 'Dîner',
+    'tmplRelax': 'Se détendre',
+    'tmplReading': 'Lire',
+    'tmplBedtime': 'Se coucher',
+    'tmplEmails': 'Emails',
+    'tmplMeeting': 'Réunion',
+    'tmplLunchBreak': 'Pause déjeuner',
+    'tmplReports': 'Rapports',
+    'tmplWrapUp': 'Fin de journée',
+    'tmplReview': 'Réviser',
+    'tmplExercises': 'Exercices',
+    'tmplStudyBreak': 'Pause',
+    'tmplWarmup': 'Échauffement',
+    'tmplRun': 'Course',
+    'tmplStretch': 'Étirements',
+  });
+
+  static const en = AppStrings({
+    'appName': 'Rappel +',
+    'cancel': 'Cancel',
+    'save': 'Save',
+    'delete': 'Delete',
+    'edit': 'Edit',
+    'add': 'Add',
+    'today': 'Today',
+    'tomorrow': 'Tomorrow',
+    'enabled': 'Enabled',
+    'disabled': 'Disabled',
+    'monday': 'On Monday',
+    'tuesday': 'On Tuesday',
+    'wednesday': 'On Wednesday',
+    'thursday': 'On Thursday',
+    'friday': 'On Friday',
+    'saturday': 'On Saturday',
+    'sunday': 'On Sunday',
+    'mon': 'Mon',
+    'tue': 'Tue',
+    'wed': 'Wed',
+    'thu': 'Thu',
+    'fri': 'Fri',
+    'sat': 'Sat',
+    'sun': 'Sun',
+
+    'greetingNight': 'Good night',
+    'greetingMorning': 'Good morning',
+    'greetingAfternoon': 'Good afternoon',
+    'greetingEvening': 'Good evening',
+    'statusNothing': 'Nothing planned, enjoy your day',
+    'statusAllDone': 'All done, well done!',
+    'statusLeft': '{count} activity left',
+    'homeTitle': 'Rappel +',
+    'addActivity': 'New activity',
+    'done': 'done',
+    'emptyTodayTitle': 'No activity today',
+    'emptyTodayHint': 'Tap « New activity » to schedule one',
+    'activityAdded': 'Activity added ✓',
+    'streakUnit': 'd',
+    'habitTitle': 'Habit tracking',
+    'habitStreak': 'Days you respected the routine',
+    'habitEmpty': 'Start checking your daily activities!',
+    'habitLast7': 'Last 7 days — progress',
+    'habitProgress': 'progress',
+    'deleteConfirmTitle': 'Delete?',
+    'deleteConfirmBody': 'Delete « {name} » and its reminder?',
+    'weeklyFull': 'days completed',
+    'weeklyDone': 'activities checked',
+    'weeklyEmpty': 'No activity on that day',
+    'myWeek': 'My week',
+    'prevWeek': 'Previous week',
+    'nextWeek': 'Next week',
+    'calendar': 'Calendar',
+    'homeTab': 'Home',
+    'weeklyTab': 'Weekly',
+
+    'newActivity': 'New activity',
+    'editActivity': 'Edit activity',
+    'nameLabel': 'Activity name',
+    'nameHint': 'Ex.: Wake up, Cleaning…',
+    'nameError': 'Enter a name',
+    'time': 'Time',
+    'date': 'Date',
+    'notificationSound': 'Notification sound',
+    'repeat': 'Repeat',
+    'once': 'Once',
+    'day': 'Day',
+    'days': 'Days',
+    'month': 'Month',
+    'monthly': 'Every month',
+    'repeatDaily': 'Every day',
+    'remindersEnabled': 'Reminders enabled',
+    'remindersOn': 'You will get a notification at the chosen time',
+    'remindersOff': 'The activity stays listed but won\'t ring',
+    'chooseOneWeekday': 'Choose at least one weekday',
+    'saveChanges': 'Save changes',
+
+    'soundChime1': 'Chime',
+    'soundChime2': 'Arpeggio',
+    'soundBeep': 'Beep',
+    'soundBell': 'Bell',
+    'soundWhistle': 'Whistle',
+    'soundAlarm': 'Alarm',
+    'soundDefault': 'Default',
+    'soundCustom': 'Custom sound',
+    'chooseCustomSound': 'Choose a sound…',
+    'chooseCustomSoundHint': 'Import an audio file (mp3, wav…)',
+    'customSoundAdded': 'Custom sound added ✓',
+    'pickerError': 'Cannot read this audio file',
+
+    'settings': 'Settings',
+    'appearance': 'Appearance',
+    'theme': 'Theme',
+    'themeLight': 'Light',
+    'themeDark': 'Dark',
+    'themeSystem': 'Auto',
+    'language': 'Language',
+    'french': 'French',
+    'notifications': 'Notifications',
+    'defaultSound': 'Default sound',
+    'defaultSoundTitle': 'Default sound for new activities',
+    'reminderBefore': 'Remind before activity',
+    'reminderAtExact': 'At the exact time',
+    'reminderMinutes': '{n} min before',
+    'trySound': 'Try the sound',
+    'trySoundHint': 'Plays the preview immediately',
+    'test': 'Test',
+    'previewPlay': 'Play preview',
+    'previewStop': 'Stop preview',
+    'security': 'Security',
+    'lockApp': 'Lock the app',
+    'lockDisabled': 'Disabled',
+    'lockMethod': 'Method: {method}',
+    'changeMethod': 'Change method',
+    'modifyCode': 'Change the code',
+    'unlockFingerprint': 'Unlock with fingerprint',
+    'unlockFingerprintHint': 'In addition to the code',
+    'privacy': 'Privacy',
+    'offline': '100% offline',
+    'offlineHint': 'Your data stays on your device, encrypted. '
+        'No data is collected, no third-party services.',
+    'lockMethodTitle': 'Lock method',
+    'pinLabel': 'PIN code',
+    'passwordLabel': 'Password',
+    'patternLabel': 'Pattern',
+    'biometricLabel': 'Fingerprint',
+    'pinHint': '4-digit code',
+    'passwordHint': 'Secret password',
+    'patternHint': 'Draw a pattern',
+    'biometricHint': 'Fingerprint or Face ID',
+    'lockActivated': 'Lock enabled',
+    'methodChanged': 'Method changed',
+    'codeUpdated': 'Code updated',
+    'noBiometric': 'Your phone does not support fingerprint. '
+        'Choose a PIN code instead.',
+
+    'lockAppTitle': 'App locked',
+    'choosePin': 'Choose a PIN code',
+    'confirmPin': 'Confirm PIN code',
+    'choosePassword': 'Choose a password',
+    'confirmPassword': 'Confirm password',
+    'passwordMin': 'Password (min. 4 characters)',
+    'passwordPlaceholder': 'Secret',
+    'min4Chars': 'Minimum 4 characters',
+    'drawPattern': 'Draw your pattern',
+    'drawPatternAgain': 'Draw it again',
+    'patternMin': 'Pattern of at least 4 dots',
+    'mismatch': 'Both entries must match',
+    'secret': 'Secret',
+    'continueLabel': 'Continue',
+    'verification': 'Verification',
+    'enterToContinue': 'Identify yourself to continue',
+    'currentPassword': 'Current password',
+    'unlockPin': 'Enter your PIN code',
+    'unlockPassword': 'Enter your password',
+    'unlockPattern': 'Draw your pattern',
+    'unlockBiometric': 'Unlock with your fingerprint',
+    'wrongPin': 'Wrong code, try again',
+    'wrongPassword': 'Wrong password',
+    'wrongPattern': 'Wrong pattern, try again',
+    'passwordField': 'Password',
+    'unlockBtn': 'Unlock',
+    'checking': 'Checking…',
+    'touchSensor': 'Touch the sensor',
+    'useFingerprint': 'Use fingerprint',
+    'verifyBiometric': 'Unlock Rappel + with your fingerprint',
+    'tryAgain': 'Try again',
+
+    'notifReminder': '« {name} » in {minutes} min (at {time})',
+    'notifNow': 'Time for « {name} »',
+    'notifTest': 'This is a test notification 🎉',
+    'notifChannelDesc': 'Reminders for your activities',
+    'channelName': 'Reminders - {name}',
+    'actionDone': 'Done',
+    'actionSnooze5': '+5 min',
+    'actionSnooze10': '+10 min',
+    'actionSnooze30': '+30 min',
+    'actionTomorrow': 'Tomorrow',
+    'notifDeferred': '« {name} » deferred to {time}',
+    'notifTomorrow': '« {name} » — tomorrow at {time}',
+
+    'stats': 'Stats',
+    'currentStreak': 'Current streak',
+    'bestRecord': 'Best streak',
+    'daysUnit': 'days',
+    'consecutiveDaysUnit': 'days in a row',
+    'thisWeek': 'This week',
+    'routineRespected': 'routine respected',
+    'activitiesDone': 'done',
+    'activitiesMissed': 'missed',
+    'weeklyProgress': 'Weekly progress',
+    'history': 'History',
+    'monthlyView': 'Monthly view',
+    'noHistory': 'No history yet',
+    'statusRespected': 'Respected',
+    'statusPartial': 'Partial',
+    'statusMissed': 'Missed',
+    'statusNeutral': 'No routine',
+    'statsEmptyTitle': 'No routine yet',
+    'statsEmptyHint': 'Create activities, then check them off every day to see your progress.',
+
+    'routines': 'Routines',
+    'createRoutine': 'Create a routine',
+    'routineName': 'Routine name',
+    'routineNameHint': 'Ex.: Morning routine',
+    'routineNameError': 'Enter a name',
+    'routineDescription': 'Description',
+    'routineDescriptionHint': 'Optional',
+    'routineIcon': 'Icon',
+    'routineActivities': 'Activities',
+    'chooseTemplate': 'Choose a template',
+    'addRoutineActivity': 'Add an activity',
+    'routineActivityTitle': 'Routine activity',
+    'routineActivityNameHint': 'Ex.: Wake up, Stretching…',
+    'chooseActivityTime': 'Choose the time',
+    'activityAddedToRoutine': 'Activity added',
+    'routineCreated': 'Routine created ✓',
+    'routineUpdated': 'Routine updated ✓',
+    'routineActive': 'Active',
+    'routineInactive': 'Paused',
+    'pauseRoutine': 'Pause',
+    'resumeRoutine': 'Resume',
+    'noRoutines': 'No routines',
+    'noRoutinesHint': 'Create a routine to launch several activities at once.',
+    'routineCreationError': 'Could not save the routine. No data was modified.',
+    'routineActivityRequired': 'Add at least one activity',
+    'deleteRoutineTitle': 'Delete the routine?',
+    'deleteRoutineBody': '« {name} » and its {count} activities will be deleted. The reminders will be cancelled.',
+    'removeActivityTitle': 'Delete this activity?',
+    'activitiesLabel': '{count} activities',
+    'activityOne': '1 activity',
+    'activitiesZero': '0 activities',
+    'editRoutine': 'Edit the routine',
+
+    'tmplMorning': 'Morning routine',
+    'tmplEvening': 'Evening routine',
+    'tmplWork': 'Work routine',
+    'tmplStudy': 'Study routine',
+    'tmplSport': 'Workout routine',
+    'tmplCustom': 'Custom routine',
+    'tmplWakeUp': 'Wake up',
+    'tmplWater': 'Drink water',
+    'tmplWorkout': 'Workout',
+    'tmplShower': 'Shower',
+    'tmplBreakfast': 'Breakfast',
+    'tmplDinner': 'Dinner',
+    'tmplRelax': 'Relax',
+    'tmplReading': 'Read',
+    'tmplBedtime': 'Go to bed',
+    'tmplEmails': 'Emails',
+    'tmplMeeting': 'Meeting',
+    'tmplLunchBreak': 'Lunch break',
+    'tmplReports': 'Reports',
+    'tmplWrapUp': 'End of day',
+    'tmplReview': 'Review',
+    'tmplExercises': 'Exercises',
+    'tmplStudyBreak': 'Break',
+    'tmplWarmup': 'Warm-up',
+    'tmplRun': 'Run',
+    'tmplStretch': 'Stretching',
+  });
+}
