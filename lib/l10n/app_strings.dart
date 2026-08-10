@@ -324,6 +324,25 @@ class AppStrings {
   String get categorySport => _('categorySport');
   String get categoryOther => _('categoryOther');
 
+  // ————— Recherche & filtres —————
+  String get search => _('search');
+  String get searchTitle => _('searchTitle');
+  String get searchHint => _('searchHint');
+  String get filters => _('filters');
+  String get filterDate => _('filterDate');
+  String get filterStatus => _('filterStatus');
+  String get filterPriority => _('filterPriority');
+  String get filterCategory => _('filterCategory');
+  String get all => _('all');
+  String get statusTodo => _('statusTodo');
+  String get statusDone => _('statusDone');
+  String get statusDoneHint => _('statusDoneHint');
+  String get noResults => _('noResults');
+  String get noResultsHint => _('noResultsHint');
+  String get clearAll => _('clearAll');
+  String get clearSearch => _('clearSearch');
+  String get clearSearchFilters => _('clearSearchFilters');
+
   static const fr = AppStrings({
     'appName': 'Rappel +',
     'cancel': 'Annuler',
@@ -608,6 +627,24 @@ class AppStrings {
     'categoryStudy': 'Études',
     'categorySport': 'Sport',
     'categoryOther': 'Autre',
+
+    'search': 'Rechercher',
+    'searchTitle': 'Recherche',
+    'searchHint': 'Rechercher une activité…',
+    'filters': 'Filtres',
+    'filterDate': 'Date',
+    'filterStatus': 'Statut',
+    'filterPriority': 'Priorité',
+    'filterCategory': 'Catégorie',
+    'all': 'Toutes',
+    'statusTodo': 'À faire',
+    'statusDone': 'Terminées',
+    'statusDoneHint': 'Terminées aujourd\'hui',
+    'noResults': 'Aucune activité trouvée',
+    'noResultsHint': 'Modifie ta recherche ou tes filtres',
+    'clearAll': 'Tout effacer',
+    'clearSearch': 'Effacer la recherche',
+    'clearSearchFilters': 'Effacer la recherche et les filtres',
   });
 
   static const en = AppStrings({
@@ -894,5 +931,23 @@ class AppStrings {
     'categoryStudy': 'Studies',
     'categorySport': 'Sport',
     'categoryOther': 'Other',
+
+    'search': 'Search',
+    'searchTitle': 'Search',
+    'searchHint': 'Search activities…',
+    'filters': 'Filters',
+    'filterDate': 'Date',
+    'filterStatus': 'Status',
+    'filterPriority': 'Priority',
+    'filterCategory': 'Category',
+    'all': 'All',
+    'statusTodo': 'To do',
+    'statusDone': 'Done',
+    'statusDoneHint': 'Done today',
+    'noResults': 'No activity found',
+    'noResultsHint': 'Change your search or filters',
+    'clearAll': 'Clear all',
+    'clearSearch': 'Clear search',
+    'clearSearchFilters': 'Clear search and filters',
   });
 }

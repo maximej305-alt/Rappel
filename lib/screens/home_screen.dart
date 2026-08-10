@@ -13,6 +13,7 @@ import '../widgets/app_empty_state.dart';
 import '../widgets/habit_chart.dart';
 import '../widgets/progress_ring.dart';
 import 'add_activity_screen.dart';
+import 'search_screen.dart';
 
 class HomeScreen extends ConsumerStatefulWidget {
   const HomeScreen({super.key});
@@ -109,6 +110,12 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                       ],
                     ),
                   ),
+                IconButton(
+                  onPressed: _openSearch,
+                  tooltip: s.search,
+                  icon: const Icon(Icons.search),
+                  color: scheme.onSurfaceVariant,
+                ),
               ],
             ),
           ),
@@ -265,6 +272,12 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
 
   String _capitalize(String s) =>
       s.isEmpty ? s : s[0].toUpperCase() + s.substring(1);
+
+  void _openSearch() {
+    Navigator.of(context).push<void>(
+      MaterialPageRoute(builder: (_) => const SearchScreen()),
+    );
+  }
 
   Future<void> _openAdd() async {
     final messenger = ScaffoldMessenger.of(context);
