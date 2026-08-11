@@ -570,8 +570,9 @@ class NotificationService {
 
   /// Prochaine occurrence future (décallée de [offsetMinutes]), ou `null`
   /// si une activité « une fois » est déjà passée.
-  tz.TZDateTime? _nextFireTime(Activity a, int weekday, int offsetMinutes) {
-    final now = DateTime.now();
+  tz.TZDateTime? _nextFireTime(Activity a, int weekday, int offsetMinutes,
+      [DateTime? now]) {
+    final clock = now ?? DateTime.now();
     final base =
         DateTime(a.date.year, a.date.month, a.date.day, a.hour, a.minute);
 
@@ -581,71 +582,90 @@ class NotificationService {
         occ = base;
         break;
       case RepeatRule.daily:
-        occ = DateTime(now.year, now.month, now.day, a.hour, a.minute);
+        occ = DateTime(clock.year, clock.month, clock.day, a.hour, a.minute);
         break;
       case RepeatRule.weekly:
-        var daysAhead = weekday - now.weekday;
+        var daysAhead = weekday - clock.weekday;
         if (daysAhead < 0) daysAhead += 7;
-        occ = DateTime(now.year, now.month, now.day, a.hour, a.minute)
+        occ = DateTime(clock.year, clock.month, clock.day, a.hour, a.minute)
             .add(Duration(days: daysAhead));
         break;
       case RepeatRule.monthly:
-        occ = _nextMonthlyOccurrence(base, now);
+        occ = _nextMonthlyOccurrence(base, clock);
         break;
     }
 
-    if (a.repeat == RepeatRule.none && occ.isBefore(now)) return null;
+    if (a.repeat == RepeatRule.none && occ.isBefore(clock)) return null;
 
     // Ne pas rappeler avant la date de création de l'activité.
     while (a.repeat != RepeatRule.none &&
         DateTime(occ.year, occ.month, occ.day).isBefore(a.date)) {
       occ = switch (a.repeat) {
         RepeatRule.weekly => occ.add(const Duration(days: 7)),
-        RepeatRule.monthly =>
-          DateTime(occ.year, occ.month + 1, occ.day, occ.hour, occ.minute),
+        RepeatRule.monthly => _advanceMonthly(base, occ),
         _ => occ,
       };
     }
 
     final withOffset = occ.subtract(Duration(minutes: offsetMinutes));
-    if (!withOffset.isAfter(now)) {
+    if (!withOffset.isAfter(clock)) {
       // La prochaine occurrence est déjà passée → on avance d'un cycle.
       occ = switch (a.repeat) {
         RepeatRule.daily => occ.add(const Duration(days: 1)),
         RepeatRule.weekly => occ.add(const Duration(days: 7)),
-        RepeatRule.monthly =>
-          DateTime(occ.year, occ.month + 1, occ.day, occ.hour, occ.minute),
+        RepeatRule.monthly => _advanceMonthly(base, occ),
         RepeatRule.none => occ,
       };
-      if (!occ.add(Duration(minutes: -offsetMinutes)).isAfter(now)) return null;
+      if (!occ.add(Duration(minutes: -offsetMinutes)).isAfter(clock)) {
+        return null;
+      }
     }
 
-    return tz.TZDateTime.from(
-        occ.subtract(Duration(minutes: offsetMinutes)), tz.local);
+    final fire = occ.subtract(Duration(minutes: offsetMinutes));
+    return tz.TZDateTime(
+        tz.local, fire.year, fire.month, fire.day, fire.hour, fire.minute);
   }
 
   DateTime _nextMonthlyOccurrence(DateTime base, DateTime now) {
-    var occ =
-        DateTime(now.year, now.month, base.day, base.hour, base.minute);
-    final lastDay = _daysInMonth(occ.year, occ.month);
-    if (occ.day > lastDay) {
-      occ = DateTime(occ.year, occ.month, lastDay, occ.hour, occ.minute);
-    }
+    final lastDay = _daysInMonth(now.year, now.month);
+    final day = base.day > lastDay ? lastDay : base.day;
+    var occ = DateTime(now.year, now.month, day, base.hour, base.minute);
     if (occ.isBefore(now)) {
-      final next = DateTime(occ.year, occ.month + 1, base.day,
-          base.hour, base.minute);
-      final last = _daysInMonth(next.year, next.month);
-      return DateTime(next.year, next.month,
-          next.day > last ? last : next.day, next.hour, next.minute);
+      final nextMonth = DateTime(now.year, now.month + 1, 1);
+      final nextLast = _daysInMonth(nextMonth.year, nextMonth.month);
+      final nextDay = base.day > nextLast ? nextLast : base.day;
+      return DateTime(
+          nextMonth.year, nextMonth.month, nextDay, base.hour, base.minute);
     }
     return occ;
   }
 
   int _daysInMonth(int year, int month) => DateTime(year, month + 1, 0).day;
 
+  /// Avance d'un mois une occurrence en gardant le jour de [base] (et non
+  /// celui de [occ], déjà clampé) pour éviter la dérive : 31 janv. → 28 févr.
+  /// → 31 mars, jamais 28 mars.
+  DateTime _advanceMonthly(DateTime base, DateTime occ) {
+    final nextMonth = DateTime(occ.year, occ.month + 1, 1, occ.hour, occ.minute);
+    final lastDay = _daysInMonth(nextMonth.year, nextMonth.month);
+    final day = base.day > lastDay ? lastDay : base.day;
+    return DateTime(
+        nextMonth.year, nextMonth.month, day, occ.hour, occ.minute);
+  }
+
   /// Identifiant de canal utilisé pour un son personnalisé (test).
   @visibleForTesting
   String customChannelIdFor(String soundId) => _customChannelId(soundId);
+
+  /// Prochaine occurrence future pour la règle de l'activité (test).
+  @visibleForTesting
+  tz.TZDateTime? nextFireTime(
+    Activity a,
+    int weekday,
+    int offsetMinutes, [
+    DateTime? now,
+  ]) =>
+      _nextFireTime(a, weekday, offsetMinutes, now);
 
   /// Canal + son effectifs pour un identifiant de son (test).
   @visibleForTesting
