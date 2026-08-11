@@ -696,7 +696,7 @@ class _TinyButton extends StatelessWidget {
       onPressed: onPressed,
       tooltip: tooltip,
       padding: EdgeInsets.zero,
-      constraints: const BoxConstraints.tightFor(width: 34, height: 34),
+      constraints: const BoxConstraints.tightFor(width: 44, height: 44),
       icon: Icon(icon, size: 18, color: scheme.outline),
     );
   }

@@ -395,7 +395,7 @@ class _HistoryRow extends StatelessWidget {
         label.isEmpty ? label : label[0].toUpperCase() + label.substring(1);
     final (icon, color) = switch (stat.status) {
       DayStatus.respected => (Icons.check_circle, scheme.primary),
-      DayStatus.partial => (Icons.radio_button_unchecked, Colors.amber.shade700),
+      DayStatus.partial => (Icons.radio_button_unchecked, scheme.tertiary),
       DayStatus.missed => (Icons.cancel, scheme.error),
       DayStatus.neutral => (Icons.remove_circle_outline, scheme.outlineVariant),
     };
@@ -503,7 +503,7 @@ class _MonthGrid extends StatelessWidget {
           children: [
             _LegendDot(color: scheme.primary, label: s.statusRespected, scheme: scheme),
             _LegendDot(
-              color: Colors.amber.shade700,
+              color: scheme.tertiary,
               label: s.statusPartial,
               scheme: scheme,
             ),
@@ -574,7 +574,7 @@ class _DayCell extends StatelessWidget {
 
   Color? _cellColor(DayStatus? status) => switch (status) {
         DayStatus.respected => scheme.primary.withValues(alpha: 0.85),
-        DayStatus.partial => Colors.amber.shade700.withValues(alpha: 0.6),
+        DayStatus.partial => scheme.tertiary.withValues(alpha: 0.85),
         DayStatus.missed => scheme.error.withValues(alpha: 0.12),
         DayStatus.neutral => scheme.surfaceContainerHighest,
         null => Colors.transparent,
@@ -584,7 +584,7 @@ class _DayCell extends StatelessWidget {
     if (isFuture) return scheme.outline.withValues(alpha: 0.4);
     return switch (status) {
       DayStatus.respected => scheme.onPrimary,
-      DayStatus.partial => Colors.white,
+      DayStatus.partial => scheme.onTertiary,
       _ => scheme.outline,
     };
   }

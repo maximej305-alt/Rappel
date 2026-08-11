@@ -164,7 +164,7 @@ class ActivityTile extends StatelessWidget {
                 ),
               ),
               SizedBox(
-                width: 38,
+                width: 44,
                 height: 44,
                 child: IconButton(
                   padding: EdgeInsets.zero,

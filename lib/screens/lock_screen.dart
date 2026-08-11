@@ -177,7 +177,7 @@ class _LockScreenState extends ConsumerState<LockScreen> {
                         label: Text(context.l10n.useFingerprint),
                         style: OutlinedButton.styleFrom(
                           minimumSize: const Size.fromHeight(52),
-                          backgroundColor: Colors.white.withValues(alpha: 0.6),
+                          backgroundColor: Theme.of(context).colorScheme.surfaceContainerHighest.withValues(alpha: 0.8),
                           side: BorderSide(
                             color: Theme.of(context).colorScheme.primary,
                             width: 1.2,
@@ -225,7 +225,7 @@ class _Logo extends StatelessWidget {
         ),
         const SizedBox(height: 18),
         Text(
-          'Rappel +',
+          context.l10n.appName,
           style: TextStyle(
             fontSize: 26,
             fontWeight: FontWeight.w800,
@@ -457,7 +457,7 @@ class _BiometricButton extends StatelessWidget {
                       ),
                     )
                   : Icon(
-                      failed ? Icons.fingerprint : Icons.fingerprint,
+                      Icons.fingerprint,
                       size: 58,
                       color: failed ? scheme.error : scheme.primary,
                     ),

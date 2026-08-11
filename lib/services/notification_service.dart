@@ -64,9 +64,9 @@ class NotificationService {
       settings: const InitializationSettings(
         android: AndroidInitializationSettings('@mipmap/ic_launcher'),
         iOS: DarwinInitializationSettings(
-          requestAlertPermission: false,
-          requestBadgePermission: false,
-          requestSoundPermission: false,
+          requestAlertPermission: true,
+          requestBadgePermission: true,
+          requestSoundPermission: true,
         ),
       ),
       onDidReceiveBackgroundNotificationResponse: onBackgroundAction,
@@ -283,8 +283,25 @@ class NotificationService {
         onlyAlertOnce: true,
         actions: actionButtons(strings),
       ),
-      iOS: const DarwinNotificationDetails(),
+      iOS: DarwinNotificationDetails(
+        sound: _iosSoundFor(soundId),
+      ),
     );
+  }
+
+  String? _iosSoundFor(String soundId) {
+    final id = CustomSoundService.fallbackSoundId(soundId);
+    if (id.startsWith('custom://')) {
+      return null;
+    }
+    return switch (id) {
+      'chime1' => 'chime1.wav',
+      'chime2' => 'chime2.wav',
+      'beep' => 'beep.wav',
+      'bell' => 'bell.wav',
+      'whistle' => 'whistle.wav',
+      _ => null,
+    };
   }
 
   /// Boutons d'actions rapides affichés sur chaque notification.

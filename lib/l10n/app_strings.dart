@@ -114,6 +114,7 @@ class AppStrings {
   String get themeSystem => _('themeSystem');
   String get language => _('language');
   String get french => _('french');
+  String get english => _('english');
   String get notifications => _('notifications');
   String get defaultSound => _('defaultSound');
   String get defaultSoundTitle => _('defaultSoundTitle');
@@ -442,6 +443,7 @@ class AppStrings {
     'themeSystem': 'Auto',
     'language': 'Langue',
     'french': 'Français',
+    'english': 'Anglais',
     'notifications': 'Notifications',
     'defaultSound': 'Son par défaut',
     'defaultSoundTitle': 'Son par défaut des nouvelles activités',
@@ -746,6 +748,7 @@ class AppStrings {
     'themeSystem': 'Auto',
     'language': 'Language',
     'french': 'French',
+    'english': 'English',
     'notifications': 'Notifications',
     'defaultSound': 'Default sound',
     'defaultSoundTitle': 'Default sound for new activities',

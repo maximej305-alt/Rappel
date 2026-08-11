@@ -52,24 +52,27 @@ class _HebdoScreenState extends ConsumerState<HebdoScreen> {
     final weekDays = [
       for (var i = 0; i < 7; i++) _weekStart.add(Duration(days: i)),
     ];
+    final dayDueCounts = <DateTime, int>{};
+    final dayDoneCounts = <DateTime, int>{};
+    for (final d in weekDays) {
+      var due = 0;
+      var done = 0;
+      for (final a in activities) {
+        if (a.isDueOn(d)) {
+          due++;
+          if (a.isCompletedOn(d)) done++;
+        }
+      }
+      dayDueCounts[d] = due;
+      dayDoneCounts[d] = done;
+    }
     final fullDays = weekDays
-        .where((d) {
-          final due = activities.where((a) => a.isDueOn(d)).length;
-          final done = activities
-              .where((a) => a.isDueOn(d) && a.isCompletedOn(d))
-              .length;
-          return due > 0 && done >= due;
-        })
+        .where((d) => (dayDueCounts[d] ?? 0) > 0 && (dayDoneCounts[d] ?? 0) >= (dayDueCounts[d] ?? 0))
         .length;
     final activeDays = weekDays
-        .where((d) => activities.any((a) => a.isDueOn(d)))
+        .where((d) => (dayDueCounts[d] ?? 0) > 0)
         .length;
-    final doneThisWeek = weekDays.fold<int>(0, (sum, d) {
-      return sum +
-          activities
-              .where((a) => a.isDueOn(d) && a.isCompletedOn(d))
-              .length;
-    });
+    final doneThisWeek = dayDoneCounts.values.fold<int>(0, (sum, v) => sum + v);
 
     return Scaffold(
       appBar: AppBar(title: Text(s.myWeek)),

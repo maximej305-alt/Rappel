@@ -11,6 +11,7 @@ import '../providers/providers.dart';
 import '../services/custom_sound_service.dart';
 import '../services/sound_preview_service.dart';
 import '../theme/app_theme.dart';
+import '../theme/dimens.dart';
 import '../widgets/app_dialog.dart';
 import '../widgets/category_editor_dialog.dart';
 import '../widgets/lock_setup.dart';
@@ -47,16 +48,21 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
   Future<void> _applySettings(AppSettings next) async {
     final notifier = ref.read(settingsProvider.notifier);
     final previous = ref.read(settingsProvider);
-    final s = context.l10n;
     await notifier.update(next);
 
-    if (previous.reminderOffsetMinutes != next.reminderOffsetMinutes) {
+    final needsReschedule =
+        previous.reminderOffsetMinutes != next.reminderOffsetMinutes ||
+        previous.locale != next.locale ||
+        previous.defaultSound != next.defaultSound;
+
+    if (needsReschedule) {
       final notifications = ref.read(notificationServiceProvider);
       final activities = ref.read(activitiesProvider);
+      final strings = next.locale.startsWith('en') ? AppStrings.en : AppStrings.fr;
       await notifications.rescheduleAll(
         activities,
         reminderOffsetMinutes: next.reminderOffsetMinutes,
-        s: s,
+        s: strings,
       );
     }
   }
@@ -87,7 +93,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
     return Scaffold(
       appBar: AppBar(title: Text(s.settings)),
       body: ListView(
-        padding: const EdgeInsets.all(16),
+        padding: const EdgeInsets.all(AppSpacing.page),
         children: [
           SectionHeader.label(
             s.appearance,
@@ -107,13 +113,15 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                   segments: [
                     ButtonSegment(
                       value: ThemeMode.light,
-                      icon: const Icon(Icons.light_mode),
                       label: Text(s.themeLight),
                     ),
                     ButtonSegment(
                       value: ThemeMode.dark,
-                      icon: const Icon(Icons.dark_mode),
                       label: Text(s.themeDark),
+                    ),
+                    ButtonSegment(
+                      value: ThemeMode.system,
+                      label: Text(s.themeSystem),
                     ),
                   ],
                   selected: {settings.themeMode},
@@ -126,7 +134,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
               _SettingRow(
                 icon: Icons.language,
                 title: s.language,
-                subtitle: settings.locale == 'fr' ? s.french : 'English',
+                subtitle: settings.locale == 'fr' ? s.french : s.english,
                 child: SegmentedButton<String>(
                   showSelectedIcon: false,
                   style: const ButtonStyle(
