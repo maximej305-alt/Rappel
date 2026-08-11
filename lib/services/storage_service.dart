@@ -1,7 +1,10 @@
+import 'dart:async';
 import 'dart:convert';
+import 'dart:io';
 
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:hive_flutter/hive_flutter.dart';
+import 'package:path_provider/path_provider.dart';
 
 import '../models/activity.dart';
 import '../models/activity_priority.dart';
@@ -37,11 +40,78 @@ class StorageService {
   Future<void> init() async {
     await Hive.initFlutter();
     final key = await _loadOrCreateEncryptionKey();
-    _box = await Hive.openBox(
-      _boxName,
-      encryptionCipher: HiveAesCipher(key),
-    );
+    final dir = await getApplicationDocumentsDirectory();
+    _box = await openBoxWithRecovery(dir.path, _boxName, HiveAesCipher(key));
     await migrate(_box!);
+  }
+
+  /// Ouvre un coffre. En cas de fichier corrompu (écriture interrompue,
+  /// restauration partielle, header détruit), `crashRecovery` de Hive
+  /// tronque déjà au dernier frame valide ; si l'ouverture échoue malgré
+  /// tout, le fichier fautif est écarté en `.corrupt` (conservé pour une
+  /// éventuelle récupération manuelle) et un coffre neuf est créé, plutôt
+  /// que de faire planter l'app au démarrage.
+  /// Exposé publiquement pour être testé sans stockage sécurisé.
+  ///
+  /// La zone protégée absorbe l'erreur asynchrone « orpheline » que Hive
+  /// laisse derrière lui lorsqu'un `openBox` échoue (le completer interne
+  /// de `Hive._openBox` complète une future que personne n'écoute) : sans
+  /// cela, l'app recevrait un uncaught error même quand la récupération
+  /// réussit.
+  static Future<Box> openBoxWithRecovery(
+    String path,
+    String name,
+    HiveCipher cipher,
+  ) {
+    final completer = Completer<Box>();
+    runZonedGuarded(
+      () {
+        _tryOpenBox(path, name, cipher).then(
+          completer.complete,
+          onError: (Object e, StackTrace s) => completer.completeError(e, s),
+        );
+      },
+      // Erreur asynchrone non écoutée de Hive : ignorée.
+      // ignore: avoid_types_on_closure_parameters
+      (Object error, StackTrace stackTrace) {},
+    );
+    return completer.future;
+  }
+
+  static Future<Box> _tryOpenBox(
+    String path,
+    String name,
+    HiveCipher cipher,
+  ) async {
+    try {
+      return await Hive.openBox(name, path: path, encryptionCipher: cipher);
+    } catch (_) {
+      await _quarantineCorruptBox(path, name);
+      return Hive.openBox(name, path: path, encryptionCipher: cipher);
+    }
+  }
+
+  /// Écarte le fichier `.hive` corrompu en le renommant en `.corrupt`
+  /// (écrase un éventuel backup précédent). Gère aussi le cas où le chemin
+  /// fautif est un dossier (échec d'ouverture franc).
+  static Future<void> _quarantineCorruptBox(String path, String name) async {
+    final hivePath = '$path${Platform.pathSeparator}$name.hive';
+    final type = await FileSystemEntity.type(hivePath);
+    if (type == FileSystemEntityType.notFound) return;
+
+    final backupPath = '$hivePath.corrupt';
+    final backupType = await FileSystemEntity.type(backupPath);
+    if (backupType == FileSystemEntityType.directory) {
+      await Directory(backupPath).delete(recursive: true);
+    } else if (backupType != FileSystemEntityType.notFound) {
+      await File(backupPath).delete();
+    }
+
+    if (type == FileSystemEntityType.directory) {
+      await Directory(hivePath).rename(backupPath);
+    } else {
+      await File(hivePath).rename(backupPath);
+    }
   }
 
   /// Applique les migrations manquantes jusqu'à [schemaVersion].
