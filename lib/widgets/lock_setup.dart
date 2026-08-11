@@ -5,6 +5,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../l10n/l10n.dart';
 import '../models/lock_settings.dart';
 import '../providers/providers.dart';
+import '../theme/app_typography.dart';
 import 'pattern_lock.dart';
 import 'pin_pad.dart';
 
@@ -193,10 +194,7 @@ class _SetupDialog<T> extends StatelessWidget {
             Text(
               title,
               textAlign: TextAlign.center,
-              style: TextStyle(
-                fontSize: 19,
-                fontWeight: FontWeight.w800,
-                letterSpacing: -0.3,
+              style: AppTypography.titleScreen.copyWith(
                 color: scheme.onSurface,
               ),
             ),
@@ -204,10 +202,7 @@ class _SetupDialog<T> extends StatelessWidget {
             Text(
               subtitle,
               textAlign: TextAlign.center,
-              style: TextStyle(
-                fontSize: 13,
-                color: scheme.outline,
-              ),
+              style: AppTypography.captionMd.copyWith(color: scheme.outline),
             ),
             const SizedBox(height: 20),
             AnimatedSize(
@@ -275,9 +270,8 @@ class _StepBody<T> extends StatelessWidget {
                         Flexible(
                           child: Text(
                             error!,
-                            style: TextStyle(
-                              fontSize: 13,
-                              fontWeight: FontWeight.w500,
+                            style: AppTypography.captionMd.copyWith(
+                              fontWeight: AppTypography.w500,
                               color: scheme.onSurfaceVariant,
                             ),
                           ),
@@ -395,10 +389,7 @@ Future<bool> promptLockVerification(
           children: [
             Text(
               context.l10n.verification,
-              style: TextStyle(
-                fontSize: 19,
-                fontWeight: FontWeight.w800,
-                letterSpacing: -0.3,
+              style: AppTypography.titleScreen.copyWith(
                 color: Theme.of(context).colorScheme.onSurface,
               ),
             ),
@@ -406,8 +397,7 @@ Future<bool> promptLockVerification(
             Text(
               context.l10n.enterToContinue,
               textAlign: TextAlign.center,
-              style: TextStyle(
-                fontSize: 13,
+              style: AppTypography.captionMd.copyWith(
                 color: Theme.of(context).colorScheme.outline,
               ),
             ),

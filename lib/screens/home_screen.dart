@@ -7,6 +7,7 @@ import '../models/activity.dart';
 import '../providers/providers.dart';
 import '../services/stats_service.dart';
 import '../theme/app_theme.dart';
+import '../theme/app_typography.dart';
 import '../widgets/activity_tile.dart';
 import '../widgets/app_dialog.dart';
 import '../widgets/app_empty_state.dart';
@@ -115,19 +116,15 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                   children: [
                     Text(
                       s.homeTitle,
-                      style: TextStyle(
-                        fontSize: 24,
-                        fontWeight: FontWeight.w800,
-                        letterSpacing: -0.5,
+                      style: AppTypography.headlineSmall.copyWith(
                         color: scheme.primary,
                       ),
                     ),
                     const SizedBox(height: 2),
                     Text(
                       _greeting(s),
-                      style: TextStyle(
-                        fontSize: 13,
-                        fontWeight: FontWeight.w600,
+                      style: AppTypography.captionMd.copyWith(
+                        fontWeight: AppTypography.w600,
                         color: scheme.outline,
                       ),
                     ),
@@ -150,9 +147,8 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                       const SizedBox(width: 4),
                       Text(
                         '${habitStats.currentStreak} ${s.streakUnit}',
-                        style: TextStyle(
-                          fontSize: 13,
-                          fontWeight: FontWeight.w700,
+                        style: AppTypography.captionMd.copyWith(
+                          fontWeight: AppTypography.w700,
                           color: scheme.primary,
                         ),
                       ),
@@ -202,11 +198,8 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                           ),
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
-                          style: const TextStyle(
+                          style: AppTypography.appBar.copyWith(
                             color: Colors.white,
-                            fontSize: 20,
-                            fontWeight: FontWeight.w800,
-                            letterSpacing: -0.3,
                           ),
                         ),
                       ],
@@ -229,10 +222,9 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                   _statusLine(todays.length, done, s),
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
-                  style: const TextStyle(
+                  style: AppTypography.captionMd.copyWith(
                     color: Colors.white,
-                    fontSize: 13,
-                    fontWeight: FontWeight.w600,
+                    fontWeight: AppTypography.w600,
                   ),
                 ),
               ),
@@ -253,9 +245,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
             children: [
               Text(
                 s.today,
-                style: TextStyle(
-                  fontSize: 18,
-                  fontWeight: FontWeight.w800,
+                style: AppTypography.sectionTitle.copyWith(
                   letterSpacing: -0.3,
                   color: scheme.onSurface,
                 ),
@@ -270,9 +260,8 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                 ),
                 child: Text(
                   '$done/${todays.length}',
-                  style: TextStyle(
-                    fontSize: 12,
-                    fontWeight: FontWeight.w700,
+                  style: AppTypography.caption.copyWith(
+                    fontWeight: AppTypography.w700,
                     color: scheme.primary,
                   ),
                 ),

@@ -11,6 +11,7 @@ import '../providers/providers.dart';
 import '../services/custom_sound_service.dart';
 import '../services/sound_preview_service.dart';
 import '../theme/app_theme.dart';
+import '../theme/app_typography.dart';
 import '../theme/dimens.dart';
 import '../widgets/app_dialog.dart';
 import '../widgets/category_editor_dialog.dart';
@@ -254,10 +255,9 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
               _version == null
                   ? s.appName
                   : '${s.appName} · v$_version',
-              style: TextStyle(
-                fontSize: 12,
+              style: AppTypography.caption.copyWith(
                 color: scheme.outline,
-                fontWeight: FontWeight.w600,
+                fontWeight: AppTypography.w600,
               ),
             ),
           ),
@@ -338,11 +338,13 @@ class _SettingRow extends StatelessWidget {
                 children: [
                   Text(
                     title,
-                    style: const TextStyle(fontWeight: FontWeight.w600),
+                    style: TextStyle(fontWeight: AppTypography.w600),
                   ),
                   Text(
                     subtitle,
-                    style: TextStyle(fontSize: 12, color: scheme.outline),
+                    style: AppTypography.caption.copyWith(
+                      color: scheme.outline,
+                    ),
                   ),
                 ],
               ),
@@ -427,9 +429,7 @@ class _SecuritySectionState extends ConsumerState<_SecuritySection> {
               padding: const EdgeInsets.fromLTRB(20, 0, 20, 8),
               child: Text(
                 s.lockMethodTitle,
-                style: TextStyle(
-                  fontSize: 18,
-                  fontWeight: FontWeight.w800,
+                style: AppTypography.sectionTitle.copyWith(
                   color: scheme.onSurface,
                 ),
               ),
@@ -595,7 +595,7 @@ class _CategoriesSection extends ConsumerWidget {
                 leading: _CategoryAvatar(category: c),
                 title: Text(
                   c.displayName(s),
-                  style: const TextStyle(fontWeight: FontWeight.w600),
+                  style: TextStyle(fontWeight: AppTypography.w600),
                 ),
                 subtitle: Text(s.activitiesLabel(counts[c.id] ?? 0)),
                 trailing: c.builtin

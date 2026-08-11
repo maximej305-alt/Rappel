@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../l10n/l10n.dart';
 import '../models/activity.dart';
+import '../theme/app_typography.dart';
 
 class WeekDayStrip extends StatelessWidget {
   const WeekDayStrip({
@@ -117,9 +118,8 @@ class _DayCell extends StatelessWidget {
             children: [
               Text(
                 label,
-                style: TextStyle(
-                  fontSize: 13,
-                  fontWeight: FontWeight.w700,
+                style: AppTypography.captionMd.copyWith(
+                  fontWeight: AppTypography.w700,
                   color: selected
                       ? scheme.onPrimary.withValues(alpha: 0.8)
                       : scheme.outline,
@@ -128,11 +128,7 @@ class _DayCell extends StatelessWidget {
               const SizedBox(height: 4),
               Text(
                 '${day.day}',
-                style: TextStyle(
-                  fontSize: 18,
-                  fontWeight: FontWeight.w800,
-                  color: fg,
-                ),
+                style: AppTypography.sectionTitle.copyWith(color: fg),
               ),
               const SizedBox(height: 6),
               if (isToday)

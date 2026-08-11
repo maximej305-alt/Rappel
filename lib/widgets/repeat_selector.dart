@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../l10n/l10n.dart';
 import '../models/activity.dart';
+import '../theme/app_typography.dart';
 
 /// Sélecteur de répétition : 4 segments égaux, libellés jamais coupés.
 class RepeatSelector extends StatelessWidget {
@@ -86,9 +87,8 @@ class _RepeatSegment extends StatelessWidget {
           maxLines: 1,
           overflow: TextOverflow.ellipsis,
           textAlign: TextAlign.center,
-          style: TextStyle(
-            fontSize: 13,
-            fontWeight: FontWeight.w700,
+          style: AppTypography.captionMd.copyWith(
+            fontWeight: AppTypography.w700,
             color: selected ? scheme.onPrimary : scheme.onSurfaceVariant,
           ),
         ),

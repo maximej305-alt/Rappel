@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../l10n/l10n.dart';
 import '../models/sound_option.dart';
 import '../services/sound_preview_service.dart';
+import '../theme/app_typography.dart';
 
 /// Ouvre la feuille de choix de son avec aperçu immédiat au tap.
 ///
@@ -100,9 +101,7 @@ class _SoundPickerSheetState extends State<_SoundPickerSheet> {
                 padding: const EdgeInsets.fromLTRB(20, 0, 20, 8),
                 child: Text(
                   s.notificationSound,
-                  style: TextStyle(
-                    fontSize: 18,
-                    fontWeight: FontWeight.w800,
+                  style: AppTypography.sectionTitle.copyWith(
                     color: scheme.onSurface,
                   ),
                 ),

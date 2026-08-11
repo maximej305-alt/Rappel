@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 
 import '../l10n/l10n.dart';
 import '../services/stats_service.dart';
+import '../theme/app_typography.dart';
 
 /// Graphique des 7 derniers jours : une barre par jour, colorée selon le
 /// statut de la journée (respectée, partielle, manquée, neutre).
@@ -49,7 +50,7 @@ class HabitBarChart extends StatelessWidget {
                     padding: const EdgeInsets.only(top: 6),
                     child: Text(
                       labels[day.weekday - 1],
-                      style: TextStyle(fontSize: 12, color: scheme.outline),
+                      style: AppTypography.caption.copyWith(color: scheme.outline),
                     ),
                   );
                 },
@@ -120,9 +121,7 @@ class HabitChart extends StatelessWidget {
                 const SizedBox(width: 8),
                 Text(
                   s.habitTitle,
-                  style: TextStyle(
-                    fontSize: 15,
-                    fontWeight: FontWeight.w700,
+                  style: AppTypography.titleSmall.copyWith(
                     color: scheme.onSurface,
                   ),
                 ),
@@ -133,8 +132,7 @@ class HabitChart extends StatelessWidget {
               stats.currentStreak > 0
                   ? '${s.habitStreak} : ${stats.currentStreak}'
                   : s.habitEmpty,
-              style: TextStyle(
-                fontSize: 14,
+              style: AppTypography.bodyMedium.copyWith(
                 color: scheme.onSurfaceVariant,
               ),
             ),
@@ -143,7 +141,7 @@ class HabitChart extends StatelessWidget {
             const SizedBox(height: 8),
             Text(
               s.habitLast7,
-              style: TextStyle(fontSize: 12, color: scheme.outline),
+              style: AppTypography.caption.copyWith(color: scheme.outline),
             ),
           ],
         ),

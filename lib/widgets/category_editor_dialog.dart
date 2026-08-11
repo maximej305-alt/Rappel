@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../l10n/l10n.dart';
 import '../models/category.dart';
 import '../theme/app_theme.dart';
+import '../theme/app_typography.dart';
 
 /// Données saisies dans l'éditeur de catégorie.
 class CategoryEditorData {
@@ -106,9 +107,8 @@ class _CategoryEditorDialogState extends State<_CategoryEditorDialog> {
               const SizedBox(height: 16),
               Text(
                 s.categoryIcon,
-                style: TextStyle(
-                  fontSize: 12,
-                  fontWeight: FontWeight.w800,
+                style: AppTypography.caption.copyWith(
+                  fontWeight: AppTypography.w800,
                   color: scheme.outline,
                 ),
               ),
@@ -139,9 +139,8 @@ class _CategoryEditorDialogState extends State<_CategoryEditorDialog> {
               const SizedBox(height: 16),
               Text(
                 s.categoryColor,
-                style: TextStyle(
-                  fontSize: 12,
-                  fontWeight: FontWeight.w800,
+                style: AppTypography.caption.copyWith(
+                  fontWeight: AppTypography.w800,
                   color: scheme.outline,
                 ),
               ),

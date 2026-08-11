@@ -4,6 +4,7 @@ import '../l10n/l10n.dart';
 import '../models/activity_priority.dart';
 import '../models/category.dart';
 import '../theme/app_theme.dart';
+import '../theme/app_typography.dart';
 import '../theme/dimens.dart';
 import '../utils/activity_search.dart';
 import 'section_header.dart';
@@ -81,9 +82,7 @@ class _FilterSheetState extends State<_FilterSheet> {
                   Expanded(
                     child: Text(
                       s.filters,
-                      style: TextStyle(
-                        fontSize: 18,
-                        fontWeight: FontWeight.w800,
+                      style: AppTypography.sectionTitle.copyWith(
                         color: scheme.onSurface,
                       ),
                     ),
@@ -252,9 +251,8 @@ class _OptionTile extends StatelessWidget {
         label,
         maxLines: 1,
         overflow: TextOverflow.ellipsis,
-        style: TextStyle(
-          fontSize: 15,
-          fontWeight: selected ? FontWeight.w700 : FontWeight.w500,
+        style: AppTypography.titleSmall.copyWith(
+          fontWeight: selected ? AppTypography.w700 : AppTypography.w500,
           color: scheme.onSurface,
         ),
       ),
@@ -262,7 +260,7 @@ class _OptionTile extends StatelessWidget {
           ? null
           : Text(
               subtitle!,
-              style: TextStyle(fontSize: 12, color: scheme.outline),
+              style: AppTypography.caption.copyWith(color: scheme.outline),
             ),
       trailing: selected
           ? Icon(Icons.check_circle, color: scheme.primary)

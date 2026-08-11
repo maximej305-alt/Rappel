@@ -13,6 +13,7 @@ import '../services/custom_sound_service.dart';
 import '../services/notification_service.dart';
 import '../services/routine_service.dart';
 import '../services/sound_preview_service.dart';
+import '../theme/app_typography.dart';
 import '../utils/dates.dart';
 import '../widgets/category_picker_sheet.dart';
 import '../widgets/priority_selector.dart';
@@ -364,7 +365,9 @@ class _RoutineEditScreenState extends ConsumerState<RoutineEditScreen> {
                 child: Center(
                   child: Text(
                     s.routineActivityRequired,
-                    style: TextStyle(color: scheme.outline),
+                    style: AppTypography.bodyMedium.copyWith(
+                      color: scheme.outline,
+                    ),
                   ),
                 ),
               )
@@ -502,9 +505,8 @@ class _TemplateCard extends StatelessWidget {
                 maxLines: 2,
                 overflow: TextOverflow.ellipsis,
                 textAlign: TextAlign.center,
-                style: TextStyle(
-                  fontSize: 11,
-                  fontWeight: FontWeight.w700,
+                style: AppTypography.labelXs.copyWith(
+                  fontWeight: AppTypography.w700,
                   color: scheme.onSurface,
                 ),
               ),
@@ -592,9 +594,8 @@ class _ActivityRow extends StatelessWidget {
                 ),
                 child: Text(
                   time,
-                  style: TextStyle(
-                    fontSize: 13,
-                    fontWeight: FontWeight.w800,
+                  style: AppTypography.sectionTitle.copyWith(
+                    fontSize: AppTypography.sizeMd,
                     color: scheme.primary,
                   ),
                 ),
@@ -608,9 +609,7 @@ class _ActivityRow extends StatelessWidget {
                       draft.name,
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
-                      style: TextStyle(
-                        fontSize: 14,
-                        fontWeight: FontWeight.w700,
+                      style: AppTypography.labelLarge.copyWith(
                         color: scheme.onSurface,
                       ),
                     ),
@@ -619,7 +618,9 @@ class _ActivityRow extends StatelessWidget {
                       _repeatLabel(context, draft),
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
-                      style: TextStyle(fontSize: 11, color: scheme.outline),
+                      style: AppTypography.labelXs.copyWith(
+                        color: scheme.outline,
+                      ),
                     ),
                   ],
                 ),
@@ -822,9 +823,7 @@ class _RoutineActivitySheetState extends ConsumerState<_RoutineActivitySheet> {
             children: [
               Text(
                 s.routineActivityTitle,
-                style: TextStyle(
-                  fontSize: 16,
-                  fontWeight: FontWeight.w800,
+                style: AppTypography.titleMediumStrong.copyWith(
                   color: scheme.onSurface,
                 ),
               ),

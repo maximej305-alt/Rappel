@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../theme/app_typography.dart';
 import '../theme/dimens.dart';
 
 /// Tuile de sélection (Heure, Date, Son…) : icône, libellé, valeur, chevron.
@@ -62,9 +63,9 @@ class SelectorTile extends StatelessWidget {
                       title,
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
-                      style: TextStyle(
-                        fontSize: dense ? 11 : 12,
-                        fontWeight: FontWeight.w600,
+                      style: AppTypography.fieldLabel.copyWith(
+                        fontSize:
+                            dense ? AppTypography.sizeXs : AppTypography.sizeSm,
                         color: scheme.outline,
                       ),
                     ),
@@ -73,9 +74,10 @@ class SelectorTile extends StatelessWidget {
                       value,
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
-                      style: TextStyle(
-                        fontSize: dense ? 14 : 15,
-                        fontWeight: FontWeight.w800,
+                      style: AppTypography.fieldValue.copyWith(
+                        fontSize: dense
+                            ? AppTypography.sizeBase
+                            : AppTypography.sizeLg,
                         color: scheme.onSurface,
                       ),
                     ),

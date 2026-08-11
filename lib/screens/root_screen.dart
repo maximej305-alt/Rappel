@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../providers/providers.dart';
 import '../theme/app_sizes.dart';
+import '../theme/app_typography.dart';
 import 'calendar_screen.dart';
 import 'hebdo_screen.dart';
 import 'home_screen.dart';
@@ -170,9 +171,8 @@ class _NavItem extends StatelessWidget {
           const SizedBox(height: 4),
           AnimatedDefaultTextStyle(
             duration: const Duration(milliseconds: 220),
-            style: TextStyle(
-              fontSize: 11,
-              fontWeight: selected ? FontWeight.w700 : FontWeight.w600,
+            style: AppTypography.navLabel.copyWith(
+              fontWeight: selected ? AppTypography.w700 : AppTypography.w600,
               color: selected ? scheme.primary : scheme.outline,
             ),
             child: Padding(

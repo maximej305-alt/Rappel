@@ -5,6 +5,7 @@ import 'package:intl/intl.dart';
 import '../l10n/l10n.dart';
 import '../models/activity.dart';
 import '../providers/providers.dart';
+import '../theme/app_typography.dart';
 import '../utils/activity_sort.dart';
 import '../widgets/activity_tile.dart';
 import '../widgets/app_dialog.dart';
@@ -99,9 +100,8 @@ class _HebdoScreenState extends ConsumerState<HebdoScreen> {
                             maxLines: 1,
                             overflow: TextOverflow.ellipsis,
                             textAlign: TextAlign.center,
-                            style: TextStyle(
-                              fontSize: 14,
-                              fontWeight: FontWeight.w800,
+                            style: AppTypography.sectionTitle.copyWith(
+                              fontSize: AppTypography.sizeBase,
                               color: scheme.onSurface,
                             ),
                           ),
@@ -138,9 +138,7 @@ class _HebdoScreenState extends ConsumerState<HebdoScreen> {
             padding: const EdgeInsets.fromLTRB(20, 12, 20, 10),
             child: Text(
               _capitalize(formatDay(_selectedDay, locale)),
-              style: TextStyle(
-                fontSize: 17,
-                fontWeight: FontWeight.w800,
+              style: AppTypography.calendarHeader.copyWith(
                 color: scheme.onSurface,
               ),
             ),
@@ -285,9 +283,7 @@ class _StatItem extends StatelessWidget {
         const SizedBox(height: 4),
         Text(
           value,
-          style: TextStyle(
-            fontSize: 18,
-            fontWeight: FontWeight.w800,
+          style: AppTypography.sectionTitle.copyWith(
             color: scheme.onSurface,
           ),
         ),
@@ -297,7 +293,7 @@ class _StatItem extends StatelessWidget {
           textAlign: TextAlign.center,
           maxLines: 1,
           overflow: TextOverflow.ellipsis,
-          style: TextStyle(fontSize: 11, color: scheme.outline),
+          style: AppTypography.labelXs.copyWith(color: scheme.outline),
         ),
       ],
     );

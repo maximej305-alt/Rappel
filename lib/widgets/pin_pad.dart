@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
+import '../theme/app_typography.dart';
+
 /// Pavé numérique professionnel (type écran de verrouillage de téléphone).
 /// Touches circulaires larges, retour haptique, animation de pression.
 class PinPad extends StatefulWidget {
@@ -189,11 +191,7 @@ class _KeyState extends State<_Key> {
           ),
           child: Text(
             widget.label,
-            style: TextStyle(
-              fontSize: 28,
-              fontWeight: FontWeight.w600,
-              color: scheme.onSurface,
-            ),
+            style: AppTypography.pinDigit.copyWith(color: scheme.onSurface),
           ),
         ),
       ),

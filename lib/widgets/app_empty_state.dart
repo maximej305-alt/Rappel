@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../theme/app_typography.dart';
 import '../theme/dimens.dart';
 
 /// État vide réutilisable : icône, titre, texte d'aide optionnel.
@@ -31,9 +32,8 @@ class AppEmptyState extends StatelessWidget {
           Text(
             title,
             textAlign: TextAlign.center,
-            style: TextStyle(
-              fontSize: 15,
-              fontWeight: FontWeight.w600,
+            style: AppTypography.titleSmall.copyWith(
+              fontWeight: AppTypography.w600,
               color: scheme.onSurface,
             ),
           ),
@@ -42,7 +42,7 @@ class AppEmptyState extends StatelessWidget {
             Text(
               hint!,
               textAlign: TextAlign.center,
-              style: TextStyle(color: scheme.outline),
+              style: AppTypography.bodyMedium.copyWith(color: scheme.outline),
             ),
           ],
         ],

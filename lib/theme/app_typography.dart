@@ -95,6 +95,71 @@ abstract final class AppTypography {
   /// 13 px, w600 — libellés de puces (Chip).
   static const TextStyle chip = TextStyle(fontSize: sizeMd, fontWeight: w600);
 
+  /// 26 px, w800, -0.5 — nom de l'application (écran de verrouillage).
+  static const TextStyle displaySmall =
+      TextStyle(fontSize: 26, fontWeight: w800, letterSpacing: -0.5);
+
+  /// 32 px, w800, -0.5 — très grand chiffre (pourcentages des statistiques).
+  static const TextStyle displayLarge = TextStyle(
+    fontSize: 32,
+    fontWeight: w800,
+    letterSpacing: -0.5,
+  );
+
+  /// 30 px, w800, -0.5 — grand chiffre (valeurs des statistiques).
+  static const TextStyle displayMedium = TextStyle(
+    fontSize: 30,
+    fontWeight: w800,
+    letterSpacing: -0.5,
+  );
+
+  /// 28 px, w600 — chiffre du pavé numérique (verrouillage).
+  static const TextStyle pinDigit = TextStyle(fontSize: 28, fontWeight: w600);
+
+  /// 18 px, w800 — titre de section / de feuille modale.
+  static const TextStyle sectionTitle =
+      TextStyle(fontSize: size2xl, fontWeight: w800);
+
+  /// 17 px, w800 — titre de date (calendrier, hebdo).
+  static const TextStyle calendarHeader =
+      TextStyle(fontSize: sizeXxl, fontWeight: w800);
+
+  /// 19 px, w800, -0.3 — titre d'écran de verrouillage.
+  static const TextStyle titleScreen =
+      TextStyle(fontSize: 19, fontWeight: w800, letterSpacing: -0.3);
+
+  /// 16 px, w800 — titre moyen accentué.
+  static const TextStyle titleMediumStrong =
+      TextStyle(fontSize: sizeXl, fontWeight: w800);
+
+  /// 15 px, w700 — titre court (noms d'activité, de routine).
+  static const TextStyle titleSmall =
+      TextStyle(fontSize: sizeLg, fontWeight: w700);
+
+  /// 12 px, w600 — libellé de champ de formulaire.
+  static const TextStyle fieldLabel =
+      TextStyle(fontSize: sizeSm, fontWeight: w600);
+
+  /// 15 px, w800 — valeur de champ de formulaire.
+  static const TextStyle fieldValue =
+      TextStyle(fontSize: sizeLg, fontWeight: w800);
+
+  /// 12 px — légende / texte secondaire. Le poids et la hauteur héritent du
+  /// style par défaut (`bodyMedium`), comme un `TextStyle(fontSize: 12)`.
+  static const TextStyle caption = TextStyle(fontSize: sizeSm);
+
+  /// 13 px — sous-titre / unité. Hérite du poids par défaut.
+  static const TextStyle captionMd = TextStyle(fontSize: sizeMd);
+
+  /// 11 px — micro-libellés. Hérite du poids par défaut.
+  static const TextStyle labelXs = TextStyle(fontSize: sizeXs);
+
+  /// 11 px — libellé de navigation (graisse et couleur dynamiques).
+  static const TextStyle navLabel = TextStyle(fontSize: sizeXs);
+
+  /// 10 px, w700 — micro-badge.
+  static const TextStyle labelMicro = TextStyle(fontSize: 10, fontWeight: w700);
+
   /// Construit le `TextTheme` Material à partir de l'échelle « Rappel + »,
   /// coloré par [scheme] et composé dans [fontFamily] si fournie.
   static TextTheme buildTextTheme(ColorScheme scheme, {String? fontFamily}) {

@@ -7,6 +7,7 @@ import '../models/activity_priority.dart';
 import '../models/category.dart';
 import '../models/sound_option.dart';
 import '../providers/providers.dart';
+import '../theme/app_typography.dart';
 
 class ActivityTile extends StatelessWidget {
   const ActivityTile({
@@ -65,9 +66,8 @@ class ActivityTile extends StatelessWidget {
                         ),
                         child: Text(
                           time,
-                          style: TextStyle(
-                            fontSize: 14,
-                            fontWeight: FontWeight.w800,
+                          style: AppTypography.sectionTitle.copyWith(
+                            fontSize: AppTypography.sizeBase,
                             letterSpacing: 0.2,
                             color: completed
                                 ? scheme.onPrimaryContainer
@@ -112,9 +112,7 @@ class ActivityTile extends StatelessWidget {
                       activity.name,
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
-                      style: TextStyle(
-                        fontSize: 15,
-                        fontWeight: FontWeight.w700,
+                      style: AppTypography.titleSmall.copyWith(
                         letterSpacing: -0.2,
                         decoration:
                             completed ? TextDecoration.lineThrough : null,
@@ -143,8 +141,7 @@ class ActivityTile extends StatelessWidget {
                             subtitle,
                             maxLines: 1,
                             overflow: TextOverflow.ellipsis,
-                            style: TextStyle(
-                              fontSize: 12,
+                            style: AppTypography.caption.copyWith(
                               color: scheme.outline,
                             ),
                           ),

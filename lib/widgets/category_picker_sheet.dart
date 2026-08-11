@@ -5,6 +5,7 @@ import '../l10n/l10n.dart';
 import '../models/category.dart';
 import '../providers/providers.dart';
 import '../theme/app_theme.dart';
+import '../theme/app_typography.dart';
 import 'category_editor_dialog.dart';
 
 /// Ouvre la feuille de choix de catégorie.
@@ -75,9 +76,7 @@ class _CategoryPickerSheetState extends ConsumerState<_CategoryPickerSheet> {
                 padding: const EdgeInsets.fromLTRB(20, 0, 20, 8),
                 child: Text(
                   s.category,
-                  style: TextStyle(
-                    fontSize: 18,
-                    fontWeight: FontWeight.w800,
+                  style: AppTypography.sectionTitle.copyWith(
                     color: scheme.onSurface,
                   ),
                 ),
@@ -104,7 +103,7 @@ class _CategoryPickerSheetState extends ConsumerState<_CategoryPickerSheet> {
                   leading: _CategoryAvatar(category: c),
                   title: Text(
                     c.displayName(s),
-                    style: const TextStyle(fontWeight: FontWeight.w600),
+                    style: TextStyle(fontWeight: AppTypography.w600),
                   ),
                   trailing: c.id == _candidateId
                       ? Icon(Icons.check_circle, color: scheme.primary)

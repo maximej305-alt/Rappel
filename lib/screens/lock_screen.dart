@@ -6,6 +6,7 @@ import '../l10n/l10n.dart';
 import '../models/lock_settings.dart';
 import '../providers/providers.dart';
 import '../theme/app_theme.dart';
+import '../theme/app_typography.dart';
 import '../widgets/pattern_lock.dart';
 import '../widgets/pin_pad.dart';
 
@@ -226,19 +227,15 @@ class _Logo extends StatelessWidget {
         const SizedBox(height: 18),
         Text(
           context.l10n.appName,
-          style: TextStyle(
-            fontSize: 26,
-            fontWeight: FontWeight.w800,
-            letterSpacing: -0.5,
+          style: AppTypography.displaySmall.copyWith(
             color: scheme.onSurface,
           ),
         ),
         const SizedBox(height: 4),
         Text(
           context.l10n.lockAppTitle,
-          style: TextStyle(
-            fontSize: 13,
-            fontWeight: FontWeight.w500,
+          style: AppTypography.captionMd.copyWith(
+            fontWeight: AppTypography.w500,
             color: scheme.outline,
           ),
         ),
@@ -296,9 +293,8 @@ class _MethodLabel extends StatelessWidget {
               LockMethod.biometric => s.unlockBiometric,
             },
             textAlign: TextAlign.center,
-            style: TextStyle(
-              fontSize: 15,
-              fontWeight: FontWeight.w600,
+            style: AppTypography.titleSmall.copyWith(
+              fontWeight: AppTypography.w600,
               color: color,
             ),
           ),
@@ -467,9 +463,8 @@ class _BiometricButton extends StatelessWidget {
         const SizedBox(height: 18),
         Text(
           failed ? s.touchSensor : (checking ? s.checking : s.touchSensor),
-          style: TextStyle(
-            fontSize: 14,
-            fontWeight: FontWeight.w600,
+          style: AppTypography.labelLarge.copyWith(
+            fontWeight: AppTypography.w600,
             color: failed ? scheme.error : scheme.onSurfaceVariant,
           ),
         ),

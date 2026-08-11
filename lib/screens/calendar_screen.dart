@@ -5,6 +5,7 @@ import 'package:table_calendar/table_calendar.dart';
 import '../l10n/l10n.dart';
 import '../models/activity.dart';
 import '../providers/providers.dart';
+import '../theme/app_typography.dart';
 import '../utils/dates.dart';
 import '../widgets/activity_tile.dart';
 import '../widgets/app_dialog.dart';
@@ -79,10 +80,7 @@ class _CalendarScreenState extends ConsumerState<CalendarScreen> {
                   headerStyle: const HeaderStyle(
                     formatButtonVisible: false,
                     titleCentered: true,
-                    titleTextStyle: TextStyle(
-                      fontSize: 17,
-                      fontWeight: FontWeight.w800,
-                    ),
+                    titleTextStyle: AppTypography.calendarHeader,
                   ),
                   daysOfWeekStyle: DaysOfWeekStyle(
                     weekdayStyle: TextStyle(
@@ -122,9 +120,7 @@ class _CalendarScreenState extends ConsumerState<CalendarScreen> {
             padding: const EdgeInsets.fromLTRB(20, 8, 20, 10),
             child: Text(
               _capitalize(formatFullDate(_selectedDay, locale)),
-              style: TextStyle(
-                fontSize: 17,
-                fontWeight: FontWeight.w800,
+              style: AppTypography.calendarHeader.copyWith(
                 color: scheme.onSurface,
               ),
             ),

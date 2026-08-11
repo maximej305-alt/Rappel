@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../theme/app_typography.dart';
 import '../theme/dimens.dart';
 
 /// Style de titre de section.
@@ -36,15 +37,13 @@ class SectionHeader extends StatelessWidget {
       child: Text(
         isLabel ? text.toUpperCase() : text,
         style: isLabel
-            ? TextStyle(
-                fontSize: 12,
-                fontWeight: FontWeight.w800,
+            ? AppTypography.caption.copyWith(
+                fontWeight: AppTypography.w800,
                 letterSpacing: 0.8,
                 color: scheme.primary,
               )
-            : TextStyle(
-                fontSize: 13,
-                fontWeight: FontWeight.w700,
+            : AppTypography.captionMd.copyWith(
+                fontWeight: AppTypography.w700,
                 color: scheme.onSurfaceVariant,
               ),
       ),

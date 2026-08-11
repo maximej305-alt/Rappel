@@ -6,6 +6,7 @@ import '../l10n/l10n.dart';
 import '../models/activity.dart';
 import '../providers/providers.dart';
 import '../services/stats_service.dart';
+import '../theme/app_typography.dart';
 import '../widgets/app_empty_state.dart';
 import '../widgets/habit_chart.dart';
 import '../widgets/section_header.dart';
@@ -141,9 +142,8 @@ class _StatCard extends StatelessWidget {
                     label,
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
-                    style: TextStyle(
-                      fontSize: 12,
-                      fontWeight: FontWeight.w600,
+                    style: AppTypography.caption.copyWith(
+                      fontWeight: AppTypography.w600,
                       color: scheme.onSurfaceVariant,
                     ),
                   ),
@@ -159,17 +159,16 @@ class _StatCard extends StatelessWidget {
                 children: [
                   Text(
                     value,
-                    style: TextStyle(
-                      fontSize: 30,
-                      fontWeight: FontWeight.w800,
-                      letterSpacing: -0.5,
+                    style: AppTypography.displayMedium.copyWith(
                       color: scheme.onSurface,
                     ),
                   ),
                   const SizedBox(width: 4),
                   Text(
                     unit,
-                    style: TextStyle(fontSize: 13, color: scheme.outline),
+                    style: AppTypography.captionMd.copyWith(
+                      color: scheme.outline,
+                    ),
                   ),
                 ],
               ),
@@ -210,9 +209,7 @@ class _WeekSummaryCard extends StatelessWidget {
                 const SizedBox(width: 8),
                 Text(
                   s.thisWeek,
-                  style: TextStyle(
-                    fontSize: 14,
-                    fontWeight: FontWeight.w700,
+                  style: AppTypography.labelLarge.copyWith(
                     color: scheme.onSurface,
                   ),
                 ),
@@ -280,16 +277,13 @@ class _RateValue extends StatelessWidget {
       children: [
         Text(
           percent == null ? '—' : '$percent %',
-          style: TextStyle(
-            fontSize: 32,
-            fontWeight: FontWeight.w800,
-            letterSpacing: -0.5,
+          style: AppTypography.displayLarge.copyWith(
             color: scheme.onSurface,
           ),
         ),
         Text(
           label,
-          style: TextStyle(fontSize: 12, color: scheme.outline),
+          style: AppTypography.caption.copyWith(color: scheme.outline),
         ),
       ],
     );
@@ -321,18 +315,14 @@ class _CountPill extends StatelessWidget {
             const SizedBox(width: 3),
             Text(
               '$count',
-              style: TextStyle(
-                fontSize: 16,
-                fontWeight: FontWeight.w800,
-                color: color,
-              ),
+              style: AppTypography.titleMediumStrong.copyWith(color: color),
             ),
           ],
         ),
         const SizedBox(height: 2),
         Text(
           label,
-          style: const TextStyle(fontSize: 11),
+          style: AppTypography.labelXs,
         ),
       ],
     );
@@ -359,7 +349,7 @@ class _HistoryList extends StatelessWidget {
         padding: const EdgeInsets.symmetric(horizontal: 20),
         child: Text(
           s.noHistory,
-          style: TextStyle(fontSize: 13, color: scheme.outline),
+          style: AppTypography.captionMd.copyWith(color: scheme.outline),
         ),
       );
     }
@@ -409,12 +399,12 @@ class _HistoryRow extends StatelessWidget {
           Expanded(
             child: Text(
               capitalized,
-              style: TextStyle(fontSize: 13, color: scheme.onSurface),
+              style: AppTypography.captionMd.copyWith(color: scheme.onSurface),
             ),
           ),
           Text(
             stat.due == 0 ? '—' : '${stat.done}/${stat.due}',
-            style: TextStyle(fontSize: 12, color: scheme.outline),
+            style: AppTypography.caption.copyWith(color: scheme.outline),
           ),
         ],
       ),
@@ -487,7 +477,7 @@ class _MonthGrid extends StatelessWidget {
                 child: Center(
                   child: Text(
                     h,
-                    style: TextStyle(fontSize: 11, color: scheme.outline),
+                    style: AppTypography.labelXs.copyWith(color: scheme.outline),
                   ),
                 ),
               ),
@@ -521,7 +511,7 @@ class _MonthGrid extends StatelessWidget {
             '$monthDone ${s.activitiesDone} · '
             '${monthDue - monthDone} ${s.activitiesMissed} · '
             '${(monthRate * 100).round()} %',
-            style: TextStyle(fontSize: 12, color: scheme.outline),
+            style: AppTypography.caption.copyWith(color: scheme.outline),
           ),
         ],
       ],
@@ -562,9 +552,8 @@ class _DayCell extends StatelessWidget {
       child: Center(
         child: Text(
           '$day',
-          style: TextStyle(
-            fontSize: 12,
-            fontWeight: isToday ? FontWeight.w800 : FontWeight.w600,
+          style: AppTypography.caption.copyWith(
+            fontWeight: isToday ? AppTypography.w800 : AppTypography.w600,
             color: textColor,
           ),
         ),
@@ -614,7 +603,9 @@ class _LegendDot extends StatelessWidget {
         const SizedBox(width: 5),
         Text(
           label,
-          style: TextStyle(fontSize: 11, color: scheme.onSurfaceVariant),
+          style: AppTypography.labelXs.copyWith(
+            color: scheme.onSurfaceVariant,
+          ),
         ),
       ],
     );

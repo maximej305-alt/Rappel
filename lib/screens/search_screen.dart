@@ -9,6 +9,7 @@ import '../models/activity.dart';
 import '../models/activity_priority.dart';
 import '../models/category.dart';
 import '../providers/providers.dart';
+import '../theme/app_typography.dart';
 import '../theme/dimens.dart';
 import '../utils/activity_search.dart';
 import '../widgets/activity_tile.dart';
@@ -109,11 +110,13 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
                     autofocus: true,
                     onChanged: _onQueryChanged,
                     textInputAction: TextInputAction.search,
-                    style: const TextStyle(fontSize: 15),
+                    style: AppTypography.titleSmall.copyWith(
+                      fontWeight: AppTypography.w400,
+                    ),
                     decoration: InputDecoration(
                       hintText: s.searchHint,
-                      hintStyle: TextStyle(
-                        fontSize: 15,
+                      hintStyle: AppTypography.titleSmall.copyWith(
+                        fontWeight: AppTypography.w400,
                         color: scheme.outline,
                       ),
                       prefixIcon: Icon(Icons.search, color: scheme.outline),

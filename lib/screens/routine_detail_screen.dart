@@ -5,6 +5,7 @@ import '../l10n/l10n.dart';
 import '../models/activity.dart';
 import '../models/routine.dart';
 import '../providers/providers.dart';
+import '../theme/app_typography.dart';
 import '../widgets/activity_tile.dart';
 import 'add_activity_screen.dart';
 import 'routine_edit_screen.dart';
@@ -81,9 +82,7 @@ class _RoutineDetailScreenState extends ConsumerState<RoutineDetailScreen> {
                             children: [
                               Text(
                                 routine.name,
-                                style: TextStyle(
-                                  fontSize: 18,
-                                  fontWeight: FontWeight.w800,
+                                style: AppTypography.sectionTitle.copyWith(
                                   letterSpacing: -0.3,
                                   color: scheme.onSurface,
                                 ),
@@ -91,8 +90,7 @@ class _RoutineDetailScreenState extends ConsumerState<RoutineDetailScreen> {
                               const SizedBox(height: 3),
                               Text(
                                 s.activitiesLabel(activities.length),
-                                style: TextStyle(
-                                  fontSize: 12,
+                                style: AppTypography.caption.copyWith(
                                   color: scheme.outline,
                                 ),
                               ),
@@ -101,8 +99,7 @@ class _RoutineDetailScreenState extends ConsumerState<RoutineDetailScreen> {
                                 const SizedBox(height: 6),
                                 Text(
                                   routine.description!,
-                                  style: TextStyle(
-                                    fontSize: 13,
+                                  style: AppTypography.captionMd.copyWith(
                                     color: scheme.onSurfaceVariant,
                                   ),
                                 ),
@@ -120,16 +117,16 @@ class _RoutineDetailScreenState extends ConsumerState<RoutineDetailScreen> {
                       onChanged: (v) => _setActive(routine, v),
                       title: Text(
                         routine.active ? s.routineActive : s.routineInactive,
-                        style: TextStyle(
-                          fontSize: 13,
-                          fontWeight: FontWeight.w700,
+                        style: AppTypography.captionMd.copyWith(
+                          fontWeight: AppTypography.w700,
                           color: scheme.onSurface,
                         ),
                       ),
                       subtitle: Text(
                         routine.active ? s.pauseRoutine : s.resumeRoutine,
-                        style:
-                            TextStyle(fontSize: 12, color: scheme.outline),
+                        style: AppTypography.caption.copyWith(
+                          color: scheme.outline,
+                        ),
                       ),
                       secondary: Icon(
                         routine.active
@@ -147,9 +144,8 @@ class _RoutineDetailScreenState extends ConsumerState<RoutineDetailScreen> {
             padding: const EdgeInsets.fromLTRB(20, 24, 20, 10),
             child: Text(
               s.routineActivities,
-              style: TextStyle(
-                fontSize: 13,
-                fontWeight: FontWeight.w700,
+              style: AppTypography.captionMd.copyWith(
+                fontWeight: AppTypography.w700,
                 color: scheme.onSurfaceVariant,
               ),
             ),
@@ -160,7 +156,9 @@ class _RoutineDetailScreenState extends ConsumerState<RoutineDetailScreen> {
               child: Center(
                 child: Text(
                   s.routineActivityRequired,
-                  style: TextStyle(color: scheme.outline),
+                  style: AppTypography.bodyMedium.copyWith(
+                    color: scheme.outline,
+                  ),
                 ),
               ),
             )

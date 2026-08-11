@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../l10n/l10n.dart';
 import '../models/routine.dart';
 import '../providers/providers.dart';
+import '../theme/app_typography.dart';
 import '../widgets/app_empty_state.dart';
 import '../widgets/section_header.dart';
 import 'routine_detail_screen.dart';
@@ -132,9 +133,7 @@ class _RoutineCard extends StatelessWidget {
                         routine.name,
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
-                        style: TextStyle(
-                          fontSize: 15,
-                          fontWeight: FontWeight.w700,
+                        style: AppTypography.titleSmall.copyWith(
                           color: scheme.onSurface,
                         ),
                       ),
@@ -143,8 +142,7 @@ class _RoutineCard extends StatelessWidget {
                         children: [
                           Text(
                             s.activitiesLabel(count),
-                            style: TextStyle(
-                              fontSize: 12,
+                            style: AppTypography.caption.copyWith(
                               color: scheme.outline,
                             ),
                           ),
@@ -159,9 +157,7 @@ class _RoutineCard extends StatelessWidget {
                               ),
                               child: Text(
                                 s.routineInactive,
-                                style: TextStyle(
-                                  fontSize: 10,
-                                  fontWeight: FontWeight.w700,
+                                style: AppTypography.labelMicro.copyWith(
                                   color: scheme.outline,
                                 ),
                               ),
