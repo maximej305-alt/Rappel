@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../providers/providers.dart';
+import '../theme/app_sizes.dart';
 import 'calendar_screen.dart';
 import 'hebdo_screen.dart';
 import 'home_screen.dart';
@@ -42,7 +43,7 @@ class _RootScreenState extends ConsumerState<RootScreen> {
     ];
 
     return Scaffold(
-      body: IndexedStack(index: _index, children: _screens),
+      body: _LazyIndexedStack(index: _index, children: _screens),
       bottomNavigationBar: Container(
         decoration: BoxDecoration(
           color: Theme.of(context).scaffoldBackgroundColor,
@@ -62,7 +63,7 @@ class _RootScreenState extends ConsumerState<RootScreen> {
         child: SafeArea(
           top: false,
           child: SizedBox(
-            height: 66,
+            height: AppSizes.bottomNavHeight,
             child: Row(
               children: [
                 for (var i = 0; i < tabs.length; i++)
@@ -88,6 +89,46 @@ class _TabData {
   final String label;
   final IconData outlinedIcon;
   final IconData filledIcon;
+}
+
+/// IndexedStack paresseux : l'onglet courant est construit à sa première
+/// visite, puis conservé (état préservé par la suite). Les onglets jamais
+/// ouverts ne sont ni instanciés ni réparés.
+class _LazyIndexedStack extends StatefulWidget {
+  const _LazyIndexedStack({required this.index, required this.children});
+
+  final int index;
+  final List<Widget> children;
+
+  @override
+  State<_LazyIndexedStack> createState() => _LazyIndexedStackState();
+}
+
+class _LazyIndexedStackState extends State<_LazyIndexedStack> {
+  List<Widget?> _built = const [];
+
+  @override
+  Widget build(BuildContext context) {
+    if (_built.length != widget.children.length) {
+      _built = List<Widget?>.filled(widget.children.length, null);
+    }
+    final index = widget.index;
+    _built[index] ??= widget.children[index];
+
+    return Stack(
+      children: [
+        for (var i = 0; i < _built.length; i++)
+          if (_built[i] case final Widget child)
+            Offstage(
+              offstage: i != index,
+              child: TickerMode(
+                enabled: i == index,
+                child: child,
+              ),
+            ),
+      ],
+    );
+  }
 }
 
 class _NavItem extends StatelessWidget {

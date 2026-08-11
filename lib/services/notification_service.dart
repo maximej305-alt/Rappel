@@ -94,6 +94,14 @@ class NotificationService {
     _initialized = true;
   }
 
+  /// Initialise uniquement le répertoire du journal des actions rapides.
+  /// Légère (aucun plugin, aucune permission) : suffisant pour appliquer les
+  /// marquages « Terminé » différés avant le démarrage complet des
+  /// notifications.
+  Future<void> initJournalDir() async {
+    await _initJournalDir();
+  }
+
   /// Crée le répertoire du journal des actions rapides sous le dossier de
   /// support de l'application (hors boîte Hive chiffrée, pour rester lisible
   /// par l'isolate d'arrière-plan).

@@ -5,7 +5,6 @@ import 'package:table_calendar/table_calendar.dart';
 import '../l10n/l10n.dart';
 import '../models/activity.dart';
 import '../providers/providers.dart';
-import '../utils/activity_sort.dart';
 import '../utils/dates.dart';
 import '../widgets/activity_tile.dart';
 import '../widgets/app_dialog.dart';
@@ -30,9 +29,10 @@ class _CalendarScreenState extends ConsumerState<CalendarScreen> {
     final s = ref.watch(stringsProvider);
     final scheme = Theme.of(context).colorScheme;
 
+    // Activités du jour sélectionné : memoïsées par clé de jour (calculées
+    // uniquement si la liste globale ou le jour change).
     final selectedActivities =
-        activities.where((a) => a.isDueOn(_selectedDay)).toList()
-      ..sort(compareActivities);
+        ref.watch(dayActivitiesProvider(Activity.dateKey(_selectedDay)));
 
     final events = <DateTime, List<Activity>>{};
     final monthStart = DateTime(_focusedDay.year, _focusedDay.month, 1)

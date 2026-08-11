@@ -12,6 +12,7 @@ import '../services/custom_sound_service.dart';
 import '../services/notification_service.dart';
 import '../services/stats_service.dart';
 import '../services/storage_service.dart';
+import '../utils/activity_sort.dart';
 
 /// Provider remplacé dans `main.dart` après initialisation du stockage.
 final storageServiceProvider = Provider<StorageService>(
@@ -96,6 +97,26 @@ final activitiesProvider =
 final habitStatsProvider = Provider<HabitStats>((ref) {
   final activities = ref.watch(activitiesProvider);
   return StatsCalculator.compute(activities, DateTime.now());
+});
+
+/// Activités dues aujourd'hui, triées. Recalculées uniquement quand la liste
+/// globale change (memoïsées : l'accueil n'effectue plus le filtre/tri dans
+/// son `build`).
+final todayActivitiesProvider = Provider<List<Activity>>((ref) {
+  final activities = ref.watch(activitiesProvider);
+  final today = DateTime.now();
+  return activities.where((a) => a.isDueOn(today)).toList()
+    ..sort(compareActivities);
+});
+
+/// Activités dues un jour donné, triées. Memoïsées par clé de jour (évite le
+/// recalcule du calendrier à chaque rebuild de l'écran).
+final dayActivitiesProvider =
+    Provider.family<List<Activity>, String>((ref, dayKey) {
+  final activities = ref.watch(activitiesProvider);
+  final day = Activity.parseDateKey(dayKey);
+  return activities.where((a) => a.isDueOn(day)).toList()
+    ..sort(compareActivities);
 });
 
 /// Notifier des catégories. La catégorie de repli « Autre » est protégée :

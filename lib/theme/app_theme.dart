@@ -1,100 +1,53 @@
 import 'package:flutter/material.dart';
 
+import 'app_colors.dart';
+import 'app_sizes.dart';
+import 'app_typography.dart';
 import 'dimens.dart';
+import 'theme_palette.dart';
 
 /// Système de design « Rappel + ».
+///
+/// Construit les thèmes clair/sombre à partir d'une palette (`ThemePalette`)
+/// et des tokens de design (`AppColors`, `AppSizes`, `AppTypography`).
 class AppTheme {
   AppTheme._();
 
-  static const seed = Color(0xFF4F5DFF);
-  static const seedDark = Color(0xFF9AA5FF);
+  /// Seed historique du thème clair (rétrocompatibilité).
+  static const Color seed = AppColors.primary;
+
+  /// Seed historique du thème sombre (rétrocompatibilité).
+  static const Color seedDark = AppColors.primaryDark;
 
   /// Palette des catégories (indice via `Category.colorIndex`).
-  static const List<Color> categoryPalette = [
-    Color(0xFF4F5DFF),
-    Color(0xFFE85D4A),
-    Color(0xFF2E9E6B),
-    Color(0xFFE0A53B),
-    Color(0xFF8B6FE8),
-    Color(0xFF3FB6C9),
-  ];
+  static const List<Color> categoryPalette = AppColors.categoryPalette;
 
   /// Couleur d'une catégorie selon son [Category.colorIndex], cyclique.
   static Color categoryColor(int index) =>
-      categoryPalette[index % categoryPalette.length];
+      AppColors.categoryPalette[index % AppColors.categoryPalette.length];
 
-  /// Dégradé d'en-tête.
-  static const headerGradient = LinearGradient(
-    begin: Alignment.centerLeft,
-    end: Alignment.centerRight,
-    colors: [Color(0xFF4F5DFF), Color(0xFF7A5CFF)],
-  );
+  /// Dégradé d'en-tête (clair).
+  static const LinearGradient headerGradient = AppColors.headerGradient;
 
-  static const headerGradientDark = LinearGradient(
-    begin: Alignment.centerLeft,
-    end: Alignment.centerRight,
-    colors: [Color(0xFF3B47D6), Color(0xFF6749D6)],
-  );
+  /// Dégradé d'en-tête (sombre).
+  static const LinearGradient headerGradientDark =
+      AppColors.headerGradientDark;
 
-  static ThemeData get light => _base(
-        ColorScheme.fromSeed(seedColor: seed, brightness: Brightness.light),
-      );
+  /// Thème clair historique (palette « Classic »).
+  static ThemeData get light => _base(ThemePalette.classic, Brightness.light);
 
-  static ThemeData get dark => _base(
-        ColorScheme.fromSeed(seedColor: seedDark, brightness: Brightness.dark),
-      );
+  /// Thème sombre historique (palette « Classic »).
+  static ThemeData get dark => _base(ThemePalette.classic, Brightness.dark);
 
-  static ThemeData _base(ColorScheme scheme) {
-    final isDark = scheme.brightness == Brightness.dark;
+  static ThemeData _base(ThemePalette palette, Brightness brightness) {
+    final scheme = ColorScheme.fromSeed(
+      seedColor: palette.seedFor(brightness),
+      brightness: brightness,
+    );
+    final isDark = brightness == Brightness.dark;
     final surface = isDark ? const Color(0xFF13151E) : Colors.white;
 
-    final baseText = ThemeData(
-      useMaterial3: true,
-      colorScheme: scheme,
-      fontFamily: 'Inter',
-    ).textTheme;
-
-    final textTheme = baseText
-        .apply(
-          bodyColor: scheme.onSurface,
-          displayColor: scheme.onSurface,
-          fontFamily: 'Inter',
-        )
-        .copyWith(
-          headlineSmall: TextStyle(
-            fontSize: 24,
-            fontWeight: FontWeight.w800,
-            letterSpacing: -0.5,
-            color: scheme.onSurface,
-          ),
-          titleLarge: TextStyle(
-            fontSize: 18,
-            fontWeight: FontWeight.w700,
-            letterSpacing: -0.3,
-            color: scheme.onSurface,
-          ),
-          titleMedium: TextStyle(
-            fontSize: 16,
-            fontWeight: FontWeight.w600,
-            color: scheme.onSurface,
-          ),
-          bodyMedium: TextStyle(
-            fontSize: 14,
-            fontWeight: FontWeight.w400,
-            height: 1.35,
-            color: scheme.onSurface,
-          ),
-          bodySmall: TextStyle(
-            fontSize: 12,
-            fontWeight: FontWeight.w500,
-            color: scheme.onSurfaceVariant,
-          ),
-          labelLarge: TextStyle(
-            fontSize: 14,
-            fontWeight: FontWeight.w700,
-            color: scheme.onSurface,
-          ),
-        );
+    final textTheme = AppTypography.buildTextTheme(scheme, fontFamily: 'Inter');
 
     return ThemeData(
       useMaterial3: true,
@@ -108,12 +61,8 @@ class AppTheme {
         backgroundColor: surface,
         centerTitle: false,
         titleSpacing: 20,
-        titleTextStyle: TextStyle(
-          fontSize: 20,
-          fontWeight: FontWeight.w800,
-          letterSpacing: -0.3,
-          color: scheme.onSurface,
-        ),
+        titleTextStyle:
+            AppTypography.appBar.copyWith(color: scheme.onSurface),
         iconTheme: IconThemeData(color: scheme.onSurface, size: 22),
       ),
       cardTheme: CardThemeData(
@@ -129,25 +78,25 @@ class AppTheme {
       filledButtonTheme: FilledButtonThemeData(
         style: FilledButton.styleFrom(
           elevation: 0,
-          minimumSize: const Size.fromHeight(54),
+          minimumSize: const Size.fromHeight(AppSizes.buttonHeightPrimary),
           shape: RoundedRectangleBorder(
               borderRadius: BorderRadius.circular(AppRadius.lg)),
-          textStyle: const TextStyle(fontSize: 15, fontWeight: FontWeight.w700),
+          textStyle: AppTypography.buttonPrimary,
         ),
       ),
       outlinedButtonTheme: OutlinedButtonThemeData(
         style: OutlinedButton.styleFrom(
-          minimumSize: const Size.fromHeight(48),
+          minimumSize: const Size.fromHeight(AppSizes.buttonHeightSecondary),
           shape: RoundedRectangleBorder(
               borderRadius: BorderRadius.circular(AppRadius.md)),
-          textStyle: const TextStyle(fontSize: 14, fontWeight: FontWeight.w700),
+          textStyle: AppTypography.buttonSecondary,
         ),
       ),
       inputDecorationTheme: InputDecorationTheme(
         filled: true,
         fillColor: isDark ? const Color(0xFF1D202C) : const Color(0xFFF0F1F6),
-        hintStyle: TextStyle(color: scheme.outline, fontSize: 14),
-        labelStyle: TextStyle(color: scheme.outline, fontSize: 14),
+        hintStyle: TextStyle(color: scheme.outline, fontSize: AppTypography.sizeBase),
+        labelStyle: TextStyle(color: scheme.outline, fontSize: AppTypography.sizeBase),
         prefixIconColor: scheme.outline,
         border: OutlineInputBorder(
           borderRadius: BorderRadius.circular(AppRadius.md),
@@ -197,17 +146,16 @@ class AppTheme {
         backgroundColor: surface,
         shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(AppRadius.xxl)),
-        titleTextStyle: TextStyle(
-          fontSize: 18,
-          fontWeight: FontWeight.w800,
-          color: scheme.onSurface,
-        ),
-        contentTextStyle: TextStyle(fontSize: 14, color: scheme.onSurfaceVariant),
+        titleTextStyle:
+            AppTypography.dialogTitle.copyWith(color: scheme.onSurface),
+        contentTextStyle:
+            TextStyle(fontSize: AppTypography.sizeBase, color: scheme.onSurfaceVariant),
       ),
       snackBarTheme: SnackBarThemeData(
         behavior: SnackBarBehavior.floating,
         backgroundColor: isDark ? const Color(0xFF2A2D3A) : const Color(0xFF23242F),
-        contentTextStyle: const TextStyle(color: Colors.white, fontSize: 14),
+        contentTextStyle: const TextStyle(
+            color: Colors.white, fontSize: AppTypography.sizeBase),
         shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(AppRadius.md)),
       ),
@@ -219,16 +167,8 @@ class AppTheme {
       chipTheme: ChipThemeData(
         backgroundColor: isDark ? const Color(0xFF232631) : const Color(0xFFECEDF4),
         selectedColor: scheme.primary,
-        labelStyle: TextStyle(
-          fontSize: 13,
-          fontWeight: FontWeight.w600,
-          color: scheme.onSurface,
-        ),
-        secondaryLabelStyle: TextStyle(
-          fontSize: 13,
-          fontWeight: FontWeight.w600,
-          color: scheme.onPrimary,
-        ),
+        labelStyle: AppTypography.chip.copyWith(color: scheme.onSurface),
+        secondaryLabelStyle: AppTypography.chip.copyWith(color: scheme.onPrimary),
         shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(AppRadius.sm)),
         side: BorderSide.none,

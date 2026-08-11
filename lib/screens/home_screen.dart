@@ -5,8 +5,8 @@ import 'package:intl/intl.dart';
 import '../l10n/l10n.dart';
 import '../models/activity.dart';
 import '../providers/providers.dart';
+import '../services/stats_service.dart';
 import '../theme/app_theme.dart';
-import '../utils/activity_sort.dart';
 import '../widgets/activity_tile.dart';
 import '../widgets/app_dialog.dart';
 import '../widgets/app_empty_state.dart';
@@ -25,15 +25,12 @@ class HomeScreen extends ConsumerStatefulWidget {
 class _HomeScreenState extends ConsumerState<HomeScreen> {
   @override
   Widget build(BuildContext context) {
-    final activities = ref.watch(activitiesProvider);
+    final todays = ref.watch(todayActivitiesProvider);
     final locale = ref.watch(localeProvider);
     final s = ref.watch(stringsProvider);
     final scheme = Theme.of(context).colorScheme;
     final isDark = Theme.of(context).brightness == Brightness.dark;
     final today = DateTime.now();
-
-    final todays = activities.where((a) => a.isDueOn(today)).toList()
-      ..sort(compareActivities);
 
     final done = todays.where((a) => a.isCompletedOn(today)).length;
     final habitStats = ref.watch(habitStatsProvider);
@@ -49,210 +46,241 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
         foregroundColor: scheme.onPrimary,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
       ),
-      body: ListView(
+      body: ListView.builder(
         padding: EdgeInsets.only(
           bottom: 96,
           top: MediaQuery.of(context).padding.top + 8,
         ),
-        children: [
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 20),
-            child: Row(
-              crossAxisAlignment: CrossAxisAlignment.center,
-              children: [
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        s.homeTitle,
-                        style: TextStyle(
-                          fontSize: 24,
-                          fontWeight: FontWeight.w800,
-                          letterSpacing: -0.5,
-                          color: scheme.primary,
-                        ),
+        itemCount: todays.isEmpty ? 2 : 1 + todays.length,
+        itemBuilder: (context, index) {
+          if (index == 0) {
+            return _buildHeader(
+              todays: todays,
+              done: done,
+              habitStats: habitStats,
+              locale: locale,
+              isDark: isDark,
+              s: s,
+            );
+          }
+          if (todays.isEmpty) {
+            return AppEmptyState(
+              icon: Icons.event_available,
+              title: s.emptyTodayTitle,
+              hint: s.emptyTodayHint,
+            );
+          }
+          final activity = todays[index - 1];
+          return Padding(
+            padding: const EdgeInsets.fromLTRB(20, 0, 20, 10),
+            child: ActivityTile(
+              activity: activity,
+              day: today,
+              onTap: () => _openEdit(activity),
+              onToggle: () => ref
+                  .read(activitiesProvider.notifier)
+                  .toggleCompleted(activity.id, today),
+              onDelete: () => _deleteActivity(activity, s),
+            ),
+          );
+        },
+      ),
+    );
+  }
+
+  /// En-tête de l'accueil : salutation, date du jour, résumé de routine et
+  /// titre de la section « Aujourd'hui ». Un seul item de la liste pour
+  /// limiter les reconstructions.
+  Widget _buildHeader({
+    required List<Activity> todays,
+    required int done,
+    required HabitStats habitStats,
+    required String locale,
+    required bool isDark,
+    required AppStrings s,
+  }) {
+    final scheme = Theme.of(context).colorScheme;
+    final today = DateTime.now();
+
+    return Column(
+      children: [
+        Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 20),
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.center,
+            children: [
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      s.homeTitle,
+                      style: TextStyle(
+                        fontSize: 24,
+                        fontWeight: FontWeight.w800,
+                        letterSpacing: -0.5,
+                        color: scheme.primary,
                       ),
-                      const SizedBox(height: 2),
+                    ),
+                    const SizedBox(height: 2),
+                    Text(
+                      _greeting(s),
+                      style: TextStyle(
+                        fontSize: 13,
+                        fontWeight: FontWeight.w600,
+                        color: scheme.outline,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              if (habitStats.currentStreak > 0)
+                Container(
+                  padding: const EdgeInsets.symmetric(
+                      horizontal: 12, vertical: 6),
+                  decoration: BoxDecoration(
+                    color: scheme.primary.withValues(alpha: 0.1),
+                    borderRadius: BorderRadius.circular(20),
+                  ),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Icon(Icons.local_fire_department,
+                          size: 15, color: scheme.primary),
+                      const SizedBox(width: 4),
                       Text(
-                        _greeting(s),
+                        '${habitStats.currentStreak} ${s.streakUnit}',
                         style: TextStyle(
                           fontSize: 13,
-                          fontWeight: FontWeight.w600,
-                          color: scheme.outline,
+                          fontWeight: FontWeight.w700,
+                          color: scheme.primary,
                         ),
                       ),
                     ],
                   ),
                 ),
-                if (habitStats.currentStreak > 0)
-                  Container(
-                    padding: const EdgeInsets.symmetric(
-                        horizontal: 12, vertical: 6),
-                    decoration: BoxDecoration(
-                      color: scheme.primary.withValues(alpha: 0.1),
-                      borderRadius: BorderRadius.circular(20),
-                    ),
-                    child: Row(
-                      mainAxisSize: MainAxisSize.min,
+              IconButton(
+                onPressed: _openSearch,
+                tooltip: s.search,
+                icon: const Icon(Icons.search),
+                color: scheme.onSurfaceVariant,
+              ),
+            ],
+          ),
+        ),
+        const SizedBox(height: 16),
+        // En-tête : une seule ligne.
+        Container(
+          margin: const EdgeInsets.symmetric(horizontal: 20),
+          padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 16),
+          decoration: BoxDecoration(
+            gradient:
+                isDark ? AppTheme.headerGradientDark : AppTheme.headerGradient,
+            borderRadius: BorderRadius.circular(24),
+            boxShadow: [
+              BoxShadow(
+                color: AppTheme.seed.withValues(alpha: 0.3),
+                blurRadius: 16,
+                offset: const Offset(0, 8),
+              ),
+            ],
+          ),
+          child: Column(
+            children: [
+              Row(
+                children: [
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Icon(Icons.local_fire_department,
-                            size: 15, color: scheme.primary),
-                        const SizedBox(width: 4),
                         Text(
-                          '${habitStats.currentStreak} ${s.streakUnit}',
-                          style: TextStyle(
-                            fontSize: 13,
-                            fontWeight: FontWeight.w700,
-                            color: scheme.primary,
+                          _capitalize(
+                            DateFormat(
+                              'EEEE d MMMM',
+                              locale.startsWith('fr') ? 'fr_FR' : 'en_US',
+                            ).format(today),
+                          ),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: const TextStyle(
+                            color: Colors.white,
+                            fontSize: 20,
+                            fontWeight: FontWeight.w800,
+                            letterSpacing: -0.3,
                           ),
                         ),
                       ],
                     ),
                   ),
-                IconButton(
-                  onPressed: _openSearch,
-                  tooltip: s.search,
-                  icon: const Icon(Icons.search),
-                  color: scheme.onSurfaceVariant,
-                ),
-              ],
-            ),
-          ),
-          const SizedBox(height: 16),
-          // En-tête : une seule ligne.
-          Container(
-            margin: const EdgeInsets.symmetric(horizontal: 20),
-            padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 16),
-            decoration: BoxDecoration(
-              gradient:
-                  isDark ? AppTheme.headerGradientDark : AppTheme.headerGradient,
-              borderRadius: BorderRadius.circular(24),
-              boxShadow: [
-                BoxShadow(
-                  color: AppTheme.seed.withValues(alpha: 0.3),
-                  blurRadius: 16,
-                  offset: const Offset(0, 8),
-                ),
-              ],
-            ),
-            child: Column(
-              children: [
-                Row(
-                  children: [
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            _capitalize(
-                              DateFormat(
-                                'EEEE d MMMM',
-                                locale.startsWith('fr') ? 'fr_FR' : 'en_US',
-                              ).format(today),
-                            ),
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
-                            style: const TextStyle(
-                              color: Colors.white,
-                              fontSize: 20,
-                              fontWeight: FontWeight.w800,
-                              letterSpacing: -0.3,
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                    const SizedBox(width: 12),
-                    ProgressRing(
-                      progress: todays.isEmpty ? 0 : done / todays.length,
-                      valueLabel: '$done/${todays.length}',
-                      unitLabel: s.done,
-                      size: 74,
-                      strokeWidth: 6,
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 12),
-                Align(
-                  alignment: Alignment.centerLeft,
-                  child: Text(
-                    _statusLine(todays.length, done, s),
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    style: const TextStyle(
-                      color: Colors.white,
-                      fontSize: 13,
-                      fontWeight: FontWeight.w600,
-                    ),
+                  const SizedBox(width: 12),
+                  ProgressRing(
+                    progress: todays.isEmpty ? 0 : done / todays.length,
+                    valueLabel: '$done/${todays.length}',
+                    unitLabel: s.done,
+                    size: 74,
+                    strokeWidth: 6,
+                  ),
+                ],
+              ),
+              const SizedBox(height: 12),
+              Align(
+                alignment: Alignment.centerLeft,
+                child: Text(
+                  _statusLine(todays.length, done, s),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: const TextStyle(
+                    color: Colors.white,
+                    fontSize: 13,
+                    fontWeight: FontWeight.w600,
                   ),
                 ),
-              ],
-            ),
-          ),
-          if (habitStats.hasRoutine)
-            Padding(
-              padding: const EdgeInsets.only(top: 20),
-              child: HabitChart(
-                stats: habitStats,
-                locale: locale,
               ),
-            ),
+            ],
+          ),
+        ),
+        if (habitStats.hasRoutine)
           Padding(
-            padding: const EdgeInsets.fromLTRB(20, 24, 20, 12),
-            child: Row(
-              children: [
-                Text(
-                  s.today,
-                  style: TextStyle(
-                    fontSize: 18,
-                    fontWeight: FontWeight.w800,
-                    letterSpacing: -0.3,
-                    color: scheme.onSurface,
-                  ),
-                ),
-                const Spacer(),
-                Container(
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                  decoration: BoxDecoration(
-                    color: scheme.primary.withValues(alpha: 0.1),
-                    borderRadius: BorderRadius.circular(20),
-                  ),
-                  child: Text(
-                    '$done/${todays.length}',
-                    style: TextStyle(
-                      fontSize: 12,
-                      fontWeight: FontWeight.w700,
-                      color: scheme.primary,
-                    ),
-                  ),
-                ),
-              ],
+            padding: const EdgeInsets.only(top: 20),
+            child: HabitChart(
+              stats: habitStats,
+              locale: locale,
             ),
           ),
-          if (todays.isEmpty)
-            AppEmptyState(
-              icon: Icons.event_available,
-              title: s.emptyTodayTitle,
-              hint: s.emptyTodayHint,
-            )
-          else
-            for (final activity in todays)
-              Padding(
-                padding: const EdgeInsets.fromLTRB(20, 0, 20, 10),
-                child: ActivityTile(
-                  activity: activity,
-                  day: today,
-                  onTap: () => _openEdit(activity),
-                  onToggle: () => ref
-                      .read(activitiesProvider.notifier)
-                      .toggleCompleted(activity.id, today),
-                  onDelete: () => _deleteActivity(activity, s),
+        Padding(
+          padding: const EdgeInsets.fromLTRB(20, 24, 20, 12),
+          child: Row(
+            children: [
+              Text(
+                s.today,
+                style: TextStyle(
+                  fontSize: 18,
+                  fontWeight: FontWeight.w800,
+                  letterSpacing: -0.3,
+                  color: scheme.onSurface,
                 ),
               ),
-        ],
-      ),
+              const Spacer(),
+              Container(
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                decoration: BoxDecoration(
+                  color: scheme.primary.withValues(alpha: 0.1),
+                  borderRadius: BorderRadius.circular(20),
+                ),
+                child: Text(
+                  '$done/${todays.length}',
+                  style: TextStyle(
+                    fontSize: 12,
+                    fontWeight: FontWeight.w700,
+                    color: scheme.primary,
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ],
     );
   }
 
