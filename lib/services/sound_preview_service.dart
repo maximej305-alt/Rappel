@@ -16,6 +16,11 @@ class SoundPreviewService {
   bool _playing = false;
   String? _currentId;
 
+  /// Appelé quand l'aperçu se termine tout seul (fichier lu jusqu'au bout).
+  /// Permet aux écrans de retrouver leur état « sélectionné » sans rester
+  /// figés sur un indicateur de lecture obsolète.
+  void Function()? onComplete;
+
   /// Rejoue le son identifié par [soundId] (`chime1`, `custom://file://...`…).
   /// Stoppe d'abord un éventuel aperçu en cours, puis retourne `false` si le
   /// son est inconnu (aucun son joué).
@@ -34,6 +39,10 @@ class SoundPreviewService {
     }
 
     _player ??= AudioPlayer();
+    if (!_listeningComplete) {
+      _player!.onPlayerComplete.listen((_) => _handleComplete());
+      _listeningComplete = true;
+    }
     await _player!.stop();
     // mediaPlayer est le mode le plus compatible (Android comme iOS), et le
     // plus fiable sur les anciens appareils (« lowLatency » est Android-only).
@@ -41,6 +50,14 @@ class SoundPreviewService {
     _playing = true;
     _currentId = soundId;
     return true;
+  }
+
+  bool _listeningComplete = false;
+
+  void _handleComplete() {
+    _playing = false;
+    _currentId = null;
+    onComplete?.call();
   }
 
   /// Arrête l'aperçu en cours (ex. sortie de l'écran, changement de son).

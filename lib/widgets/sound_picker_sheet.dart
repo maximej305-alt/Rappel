@@ -71,6 +71,16 @@ class _SoundPickerSheetState extends State<_SoundPickerSheet>
     _pulse.forward(from: 0.6);
   }
 
+  void _beginPlaying() {
+    if (_pulse.isAnimating) return;
+    _pulse.repeat(min: 0.6);
+  }
+
+  void _endPlaying() {
+    _pulse.stop();
+    _pulse.value = 1.0;
+  }
+
   Future<void> _play(String soundId) async {
     // Sélection immédiate : l'aperçu peut échouer (son système, fichier
     // supprimé) sans pour autant perdre le choix de l'utilisateur.
@@ -80,22 +90,47 @@ class _SoundPickerSheetState extends State<_SoundPickerSheet>
     }
     try {
       await SoundPreviewService.instance.play(soundId);
-      if (mounted) setState(() => _previewingId = soundId);
+      if (!mounted) return;
+      setState(() {
+        _previewingId = soundId;
+        _beginPlaying();
+      });
+      // Quand l'aperçu finit tout seul, on revient à l'état « sélectionné »
+      // (coche visible) au lieu de rester figé sur l'indicateur de lecture.
+      SoundPreviewService.instance.onComplete = () {
+        if (!mounted) return;
+        setState(() {
+          _previewingId = null;
+          _endPlaying();
+        });
+      };
     } catch (_) {
       // Aperçu indisponible : la sélection reste valide.
-      if (mounted) setState(() => _previewingId = null);
+      if (mounted) {
+        setState(() {
+          _previewingId = null;
+          _endPlaying();
+        });
+      }
     }
   }
 
   Future<void> _stop() async {
+    SoundPreviewService.instance.onComplete = null;
     await SoundPreviewService.instance.stop();
-    if (mounted) setState(() => _previewingId = null);
+    if (mounted) {
+      setState(() {
+        _previewingId = null;
+        _endPlaying();
+      });
+    }
   }
 
   Future<void> _import() async {
     final import = widget.importCustom;
     if (import == null) return;
     setState(() => _importing = true);
+    SoundPreviewService.instance.onComplete = null;
     await SoundPreviewService.instance.stop();
     try {
       final custom = await import();
@@ -106,11 +141,15 @@ class _SoundPickerSheetState extends State<_SoundPickerSheet>
         setState(() {
           _importing = false;
           _previewingId = null;
+          _endPlaying();
         });
       }
     } catch (e) {
       if (!mounted) return;
-      setState(() => _importing = false);
+      setState(() {
+        _importing = false;
+        _endPlaying();
+      });
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text(e.toString())),
       );
@@ -174,6 +213,7 @@ class _SoundPickerSheetState extends State<_SoundPickerSheet>
               children: [
                 if (widget.importCustom != null)
                   _SoundTile(
+                    key: const Key('sound-custom'),
                     leadingIcon: Icons.audiotrack,
                     title: s.chooseCustomSound,
                     subtitle: s.chooseCustomSoundHint,
@@ -186,6 +226,7 @@ class _SoundPickerSheetState extends State<_SoundPickerSheet>
                   Padding(
                     padding: const EdgeInsets.only(bottom: 8),
                     child: _SoundTile(
+                      key: Key('sound-${option.id}'),
                       leadingIcon: option.icon,
                       title: soundLabel(option, s),
                       subtitle: option.isAlarm ? s.soundAlarm : null,
@@ -249,6 +290,7 @@ class _PreviewChip extends StatelessWidget {
 /// animé quand il joue. La sélection reste visible pendant l'écoute.
 class _SoundTile extends StatelessWidget {
   const _SoundTile({
+    super.key,
     required this.leadingIcon,
     required this.title,
     required this.selected,
@@ -279,7 +321,12 @@ class _SoundTile extends StatelessWidget {
 
     return Material(
       color: bg,
-      borderRadius: BorderRadius.circular(AppRadius.lg),
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(AppRadius.lg),
+        side: selected
+            ? BorderSide(color: scheme.primary, width: 1.5)
+            : BorderSide(color: scheme.outlineVariant.withValues(alpha: 0.4)),
+      ),
       child: InkWell(
         onTap: onTap,
         borderRadius: BorderRadius.circular(AppRadius.lg),
@@ -290,21 +337,52 @@ class _SoundTile extends StatelessWidget {
           ),
           child: Row(
             children: [
-              Container(
+              // Badge icône : la coche de sélection est TOUJOURS affichée ici,
+              // même pendant la lecture (elle ne disparaît jamais).
+              SizedBox(
                 width: 42,
                 height: 42,
-                decoration: BoxDecoration(
-                  color: selected
-                      ? scheme.primary
-                      : scheme.primary.withValues(alpha: 0.14),
-                  borderRadius: BorderRadius.circular(AppRadius.md),
-                ),
-                child: Icon(
-                  leadingIcon,
-                  size: 22,
-                  color: selected
-                      ? scheme.onPrimary
-                      : scheme.primary,
+                child: Stack(
+                  clipBehavior: Clip.none,
+                  children: [
+                    Positioned.fill(
+                      child: Container(
+                        decoration: BoxDecoration(
+                          color: selected
+                              ? scheme.primary
+                              : scheme.primary.withValues(alpha: 0.14),
+                          borderRadius: BorderRadius.circular(AppRadius.md),
+                        ),
+                        child: Icon(
+                          leadingIcon,
+                          size: 22,
+                          color: selected ? scheme.onPrimary : scheme.primary,
+                        ),
+                      ),
+                    ),
+                    if (selected)
+                      Positioned(
+                        right: -3,
+                        top: -3,
+                        child: Container(
+                          width: 15,
+                          height: 15,
+                          decoration: BoxDecoration(
+                            color: scheme.primary,
+                            shape: BoxShape.circle,
+                            border: Border.all(
+                              color: scheme.surface,
+                              width: 1.4,
+                            ),
+                          ),
+                          child: Icon(
+                            Icons.check,
+                            size: 11,
+                            color: scheme.onPrimary,
+                          ),
+                        ),
+                      ),
+                  ],
                 ),
               ),
               const SizedBox(width: AppSpacing.md),
@@ -350,7 +428,7 @@ class _SoundTile extends StatelessWidget {
                   animation: pulse!,
                   color: scheme.error,
                 )
-              else if (selected && !playing)
+              else if (selected)
                 ScaleTransition(
                   scale: pulse ?? kAlwaysCompleteAnimation,
                   child: Icon(
