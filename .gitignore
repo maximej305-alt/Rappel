@@ -17,6 +17,10 @@ migrate_working_dir/
 *.aab
 /build_corrupt/
 
+# Keystore et credentials de signature release (jamais commiter !)
+android/key.properties
+android/app/*.jks
+
 # IntelliJ related
 *.iml
 *.ipr
