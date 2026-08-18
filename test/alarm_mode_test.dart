@@ -1,4 +1,4 @@
-import 'package:flutter_local_notifications/flutter_local_notifications.dart';
+﻿import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:rappel_plus/l10n/app_strings.dart';
 import 'package:rappel_plus/models/app_settings.dart';
@@ -41,22 +41,22 @@ void main() {
       expect(details.android!.additionalFlags, isNull);
     });
 
-    test('son « défaut » en mode alarme : canal et son d\'alarme système', () {
+    test('son Â« dÃ©faut Â» en mode alarme : canal et son d\'alarme systÃ¨me', () {
       final service = NotificationService.instance;
       final (alarmChannel, _) = service.channelFor('default', AppStrings.fr,
           isAlarm: true);
       final (reminderChannel, _) = service.channelFor('default', AppStrings.fr,
           isAlarm: false);
-      expect(alarmChannel, 'rappel_v5_default_alarm');
-      expect(reminderChannel, 'rappel_v5_default');
+      expect(alarmChannel, 'rappel_v6_default_alarm');
+      expect(reminderChannel, 'rappel_v6_default');
       expect(alarmChannel, isNot(reminderChannel),
-          reason: 'le son d\'un canal est figé : canal séparé en mode alarme');
+          reason: 'le son d\'un canal est figÃ© : canal sÃ©parÃ© en mode alarme');
 
       final alarmSound = service.soundFor('default', isAlarm: true);
       expect(
         alarmSound,
         isA<UriAndroidNotificationSound>(),
-        reason: 'le défaut en mode alarme doit sonner réellement',
+        reason: 'le dÃ©faut en mode alarme doit sonner rÃ©ellement',
       );
       final reminderSound = service.soundFor('default', isAlarm: false);
       expect(reminderSound, isA<UriAndroidNotificationSound>());

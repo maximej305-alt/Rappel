@@ -864,7 +864,7 @@ class NotificationService {
 
   /// Version des canaux : la bump de ce préfixe force Android à recréer
   /// les canaux (le son d'un canal ne peut pas être modifié après création).
-  static const _channelPrefix = 'rappel_v5';
+  static const _channelPrefix = 'rappel_v6';
 
   /// Le son « par défaut » utilise le son système par défaut (rappel).
   static const _systemDefaultSound = UriAndroidNotificationSound(
