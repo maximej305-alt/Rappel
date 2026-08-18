@@ -8,6 +8,8 @@ import '../providers/providers.dart';
 import '../services/stats_service.dart';
 import '../theme/app_theme.dart';
 import '../theme/app_typography.dart';
+import '../theme/theme_palette.dart';
+import '../utils/dates.dart';
 import '../widgets/activity_tile.dart';
 import '../widgets/app_dialog.dart';
 import '../widgets/app_empty_state.dart';
@@ -29,7 +31,13 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
     final todays = ref.watch(todayActivitiesProvider);
     final locale = ref.watch(localeProvider);
     final s = ref.watch(stringsProvider);
-    final scheme = Theme.of(context).colorScheme;
+    final palette = ref.watch(paletteProvider);
+    final accent = ref
+        .watch(accentProvider)
+        .forBrightness(Theme.of(context).brightness);
+    // Fond du FAB : toujours la teinte saturée, pour garder le contraste
+    // WCAG AA du texte blanc quel que soit le thème.
+    final fabAccent = ref.watch(accentProvider).light;
     final isDark = Theme.of(context).brightness == Brightness.dark;
     final today = DateTime.now();
 
@@ -37,15 +45,21 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
     final habitStats = ref.watch(habitStatsProvider);
 
     return Scaffold(
-      floatingActionButton: FloatingActionButton.extended(
-        onPressed: _openAdd,
-        tooltip: s.addActivity,
-        icon: const Icon(Icons.add),
-        label: Text(s.addActivity),
-        elevation: 4,
-        backgroundColor: scheme.primary,
-        foregroundColor: scheme.onPrimary,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
+      floatingActionButton: Semantics(
+        label: s.addActivity,
+        button: true,
+        child: FloatingActionButton.extended(
+          onPressed: _openAdd,
+          tooltip: s.addActivity,
+          icon: const Icon(Icons.add),
+          label: Text(s.addActivity),
+          elevation: 4,
+          backgroundColor: fabAccent,
+          foregroundColor: Colors.white,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(18),
+          ),
+        ),
       ),
       body: ListView.builder(
         padding: EdgeInsets.only(
@@ -61,6 +75,8 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
               habitStats: habitStats,
               locale: locale,
               isDark: isDark,
+              palette: palette,
+              accent: accent,
               s: s,
             );
           }
@@ -78,9 +94,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
               activity: activity,
               day: today,
               onTap: () => _openEdit(activity),
-              onToggle: () => ref
-                  .read(activitiesProvider.notifier)
-                  .toggleCompleted(activity.id, today),
+              onToggle: () => toggleCompletedWithAlarm(ref, activity, today),
               onDelete: () => _deleteActivity(activity, s),
             ),
           );
@@ -98,6 +112,8 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
     required HabitStats habitStats,
     required String locale,
     required bool isDark,
+    required ThemePalette palette,
+    required Color accent,
     required AppStrings s,
   }) {
     final scheme = Theme.of(context).colorScheme;
@@ -134,22 +150,27 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
               if (habitStats.currentStreak > 0)
                 Container(
                   padding: const EdgeInsets.symmetric(
-                      horizontal: 12, vertical: 6),
+                    horizontal: 12,
+                    vertical: 6,
+                  ),
                   decoration: BoxDecoration(
-                    color: scheme.primary.withValues(alpha: 0.1),
+                    color: accent.withValues(alpha: 0.1),
                     borderRadius: BorderRadius.circular(20),
                   ),
                   child: Row(
                     mainAxisSize: MainAxisSize.min,
                     children: [
-                      Icon(Icons.local_fire_department,
-                          size: 15, color: scheme.primary),
+                      Icon(
+                        Icons.local_fire_department,
+                        size: 15,
+                        color: accent,
+                      ),
                       const SizedBox(width: 4),
                       Text(
                         '${habitStats.currentStreak} ${s.streakUnit}',
                         style: AppTypography.captionMd.copyWith(
                           fontWeight: AppTypography.w700,
-                          color: scheme.primary,
+                          color: accent,
                         ),
                       ),
                     ],
@@ -170,12 +191,11 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
           margin: const EdgeInsets.symmetric(horizontal: 20),
           padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 16),
           decoration: BoxDecoration(
-            gradient:
-                isDark ? AppTheme.headerGradientDark : AppTheme.headerGradient,
+            gradient: AppTheme.headerGradientFor(palette, isDark),
             borderRadius: BorderRadius.circular(24),
             boxShadow: [
               BoxShadow(
-                color: AppTheme.seed.withValues(alpha: 0.3),
+                color: AppTheme.seedFor(palette, isDark).withValues(alpha: 0.3),
                 blurRadius: 16,
                 offset: const Offset(0, 8),
               ),
@@ -193,7 +213,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                           _capitalize(
                             DateFormat(
                               'EEEE d MMMM',
-                              locale.startsWith('fr') ? 'fr_FR' : 'en_US',
+                              intlLocale(locale),
                             ).format(today),
                           ),
                           maxLines: 1,
@@ -237,6 +257,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
             child: HabitChart(
               stats: habitStats,
               locale: locale,
+              accent: accent,
             ),
           ),
         Padding(
@@ -252,8 +273,10 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
               ),
               const Spacer(),
               Container(
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 10,
+                  vertical: 4,
+                ),
                 decoration: BoxDecoration(
                   color: scheme.primary.withValues(alpha: 0.1),
                   borderRadius: BorderRadius.circular(20),
@@ -284,23 +307,24 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
   String _statusLine(int due, int done, AppStrings s) {
     if (due == 0) return s.statusNothing;
     if (done == due) return s.statusAllDone;
-    return s.statusLeft(due - done);
+    final left = due - done;
+    return left > 1 ? s.statusLeftPlural(left) : s.statusLeft(left);
   }
 
   String _capitalize(String s) =>
       s.isEmpty ? s : s[0].toUpperCase() + s.substring(1);
 
   void _openSearch() {
-    Navigator.of(context).push<void>(
-      MaterialPageRoute(builder: (_) => const SearchScreen()),
-    );
+    Navigator.of(
+      context,
+    ).push<void>(MaterialPageRoute(builder: (_) => const SearchScreen()));
   }
 
   Future<void> _openAdd() async {
     final messenger = ScaffoldMessenger.of(context);
-    final added = await Navigator.of(context).push<bool>(
-      MaterialPageRoute(builder: (_) => const AddActivityScreen()),
-    );
+    final added = await Navigator.of(
+      context,
+    ).push<bool>(MaterialPageRoute(builder: (_) => const AddActivityScreen()));
     if (added == true && mounted) {
       messenger.showSnackBar(
         SnackBar(content: Text(ref.read(stringsProvider).activityAdded)),

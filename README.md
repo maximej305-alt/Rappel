@@ -1,17 +1,24 @@
-# rappel_plus
+# Rappel+
 
-A new Flutter project.
+Rappel+ is a privacy-conscious mobile companion for reminders, routines and
+habits. It supports local scheduling, optional app locking, accessibility
+preferences, and eight interface languages.
 
-## Getting Started
+## Development
 
-This project is a starting point for a Flutter application.
+```bash
+flutter pub get
+flutter analyze
+flutter test
+```
 
-A few resources to get you started if this is your first Flutter project:
+## Release checks
 
-- [Learn Flutter](https://docs.flutter.dev/get-started/learn-flutter)
-- [Write your first Flutter app](https://docs.flutter.dev/get-started/codelab)
-- [Flutter learning resources](https://docs.flutter.dev/reference/learning-resources)
+Run `./build.sh` on macOS/Linux or `./build.ps1` on Windows. The scripts run
+static analysis, tests, and Android release builds. Android release artifacts
+are signed with the debug key until a production signing configuration is
+provided; do not upload them to a store.
 
-For help getting started with Flutter development, view the
-[online documentation](https://docs.flutter.dev/), which offers tutorials,
-samples, guidance on mobile development, and a full API reference.
+For a store build, configure a private release signing key in the Android
+project/CI environment, then build the AAB with `flutter build appbundle
+--release`.

@@ -170,9 +170,11 @@ class _RoutineDetailScreenState extends ConsumerState<RoutineDetailScreen> {
                   activity: activity,
                   day: DateTime.now(),
                   onTap: () => _editActivity(activity),
-                  onToggle: () => ref
-                      .read(activitiesProvider.notifier)
-                      .toggleCompleted(activity.id, DateTime.now()),
+                  onToggle: () => toggleCompletedWithAlarm(
+                    ref,
+                    activity,
+                    DateTime.now(),
+                  ),
                   onDelete: () => _deleteActivity(activity),
                 ),
               ),
@@ -246,7 +248,9 @@ class _RoutineDetailScreenState extends ConsumerState<RoutineDetailScreen> {
       final updated = a.copyWith(enabled: active);
       if (active) {
         await notifications.scheduleActivity(updated,
-            reminderOffsetMinutes: offset, s: s);
+            reminderOffsetMinutes: offset,
+            s: s,
+            alarmMode: ref.read(settingsProvider).alarmMode);
       } else {
         await notifications.cancelActivity(a);
       }

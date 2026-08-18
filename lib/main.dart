@@ -1,16 +1,19 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/date_symbol_data_local.dart';
 
-import 'l10n/app_strings.dart';
+import 'l10n/app_strings_ext.dart';
 import 'providers/providers.dart';
 import 'screens/lock_gate.dart';
 import 'screens/root_screen.dart';
+import 'screens/splash_screen.dart';
 import 'services/notification_service.dart';
 import 'services/quick_action_handler.dart';
 import 'services/sound_preview_service.dart';
 import 'services/storage_service.dart';
 import 'theme/app_theme.dart';
+import 'utils/dates.dart';
 
 /// Démarrage : initialise le strict minimum vital (dates locales, stockage
 /// chiffré, application des marquages « Terminé » différés), puis affiche
@@ -20,14 +23,15 @@ import 'theme/app_theme.dart';
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
-  // Dates en français (et anglais) pour le calendrier et l'interface.
-  // Chargement en mémoire, rapide et indispensable avant le premier rendu.
-  await initializeDateFormatting('fr_FR');
-  await initializeDateFormatting('en_US');
-
   // Stockage chiffré local — indispensable avant tout accès aux données.
   final storage = StorageService();
   await storage.init();
+
+  // Dates localisées : langue utilisateur + repli FR/EN (calendrier, pickers).
+  final bootLocale = storage.loadSettings().locale;
+  await initializeDateFormatting(intlLocale(bootLocale));
+  await initializeDateFormatting('fr_FR');
+  await initializeDateFormatting('en_US');
 
   // Répertoire du journal des actions rapides + application des marquages
   // « Terminé » différés (cohérence des données) : doivent précéder
@@ -79,15 +83,19 @@ class _RappelPlusAppState extends ConsumerState<RappelPlusApp>
       final notifications = ref.read(notificationServiceProvider);
       await notifications.init(onBackgroundAction: notificationActionCallback);
       final settings = ref.read(settingsProvider);
+      // Attendre la fin du chargement Hive avant de replanifier : sans quoi on
+      // relit la liste vide initiale et aucun rappel n'est programmé.
+      await ref.read(activitiesProvider.notifier).ready;
       final activities = ref.read(activitiesProvider);
       await notifications.rescheduleAll(
         activities,
         reminderOffsetMinutes: settings.reminderOffsetMinutes,
-        s: settings.locale.startsWith('en') ? AppStrings.en : AppStrings.fr,
+        s: appStringsFor(settings.locale),
+        alarmMode: settings.alarmMode,
       );
-    } catch (_) {
-      // Les notifications restent inactives jusqu'au prochain appel ;
-      // l'interface n'est pas bloquée pour autant.
+      debugPrint('[Rappel] secondaryInit OK, activities=${activities.length}');
+    } catch (e, st) {
+      debugPrint('[Rappel] secondaryInit FAILED: $e\n$st');
     }
   }
 
@@ -102,14 +110,69 @@ class _RappelPlusAppState extends ConsumerState<RappelPlusApp>
   @override
   Widget build(BuildContext context) {
     final themeMode = ref.watch(themeModeProvider);
+    final palette = ref.watch(paletteProvider);
+    final settings = ref.watch(settingsProvider);
 
     return MaterialApp(
       title: ref.watch(stringsProvider).appName,
       debugShowCheckedModeBanner: false,
-      theme: AppTheme.light,
-      darkTheme: AppTheme.dark,
+      locale: Locale(settings.locale),
+      supportedLocales: const [
+        Locale('fr'),
+        Locale('en'),
+        Locale('es'),
+        Locale('de'),
+        Locale('it'),
+        Locale('pt'),
+        Locale('zh'),
+        Locale('ar'),
+      ],
+      localizationsDelegates: const [
+        GlobalMaterialLocalizations.delegate,
+        GlobalWidgetsLocalizations.delegate,
+        GlobalCupertinoLocalizations.delegate,
+      ],
+      theme: AppTheme.lightFor(palette, fontFamily: settings.fontFamily),
+      darkTheme: AppTheme.darkFor(palette, amoled: settings.amoled, fontFamily: settings.fontFamily),
       themeMode: themeMode,
-      home: const LockGate(child: RootScreen()),
+      // Échelle de texte : le réglage interne multiplie l'échelle système
+      // (accessibilité OS) et reste borné pour éviter les mises en page
+      // illisibles ou cassées.
+      builder: (context, child) {
+        final data = MediaQuery.of(context);
+        final systemFactor = data.textScaler.scale(14) / 14;
+        final effective = TextScaler.linear(
+          (systemFactor * settings.textScale).clamp(0.8, 2.0),
+        );
+        return MediaQuery(
+          data: data.copyWith(textScaler: effective),
+          child: child ?? const SizedBox.shrink(),
+        );
+      },
+      home: const _StartGate(),
     );
+  }
+}
+
+/// Séquence de lancement : splash Rappel+ puis contenu réel (accueil si aucune
+/// sécurité, écran de verrouillage sinon — géré par [LockGate]).
+class _StartGate extends StatefulWidget {
+  const _StartGate();
+
+  @override
+  State<_StartGate> createState() => _StartGateState();
+}
+
+class _StartGateState extends State<_StartGate> {
+  bool _showSplash = true;
+
+  @override
+  Widget build(BuildContext context) {
+    if (_showSplash) {
+      return SplashScreen(
+        onDone: () => setState(() => _showSplash = false),
+      );
+    }
+    return const LockGate(child: RootScreen());
   }
 }

@@ -138,9 +138,7 @@ class _CalendarScreenState extends ConsumerState<CalendarScreen> {
                   activity: activity,
                   day: _selectedDay,
                   onTap: () => _openEdit(activity),
-                  onToggle: () => ref
-                      .read(activitiesProvider.notifier)
-                      .toggleCompleted(activity.id, _selectedDay),
+                  onToggle: () => toggleCompletedWithAlarm(ref, activity, _selectedDay),
                   onDelete: () => _deleteActivity(activity, s),
                 ),
               ),

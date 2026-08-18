@@ -69,7 +69,7 @@ void main() {
       final service = NotificationService.instance;
       final missing = 'custom://${Uri.file('${tempDir.path}/orphelin.mp3')}';
       final (channelId, _) = service.channelFor(missing, s);
-      expect(channelId, 'rappel_v3_default',
+      expect(channelId, 'rappel_v5_default',
           reason: 'canal par défaut au lieu d\'un canal custom mort');
       final sound = service.soundFor(missing);
       expect(sound, isA<UriAndroidNotificationSound>());
@@ -78,14 +78,14 @@ void main() {
     test('un son custom existant garde son canal dédié', () {
       final service = NotificationService.instance;
       final (channelId, _) = service.channelFor(customId(existingFile), s);
-      expect(channelId, isNot('rappel_v3_default'),
+      expect(channelId, isNot('rappel_v5_default'),
           reason: 'le fichier existe : canal custom conservé');
-      expect(channelId, startsWith('rappel_v3_custom_'));
+      expect(channelId, startsWith('rappel_v5_custom_'));
     });
 
     test('les sons intégrés sont inchangés', () {
       final service = NotificationService.instance;
-      expect(service.channelFor('bell', s).$1, 'rappel_v3_bell');
+      expect(service.channelFor('bell', s).$1, 'rappel_v5_bell');
       expect(service.soundFor('bell'),
           isA<RawResourceAndroidNotificationSound>());
     });

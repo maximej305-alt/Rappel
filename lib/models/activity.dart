@@ -1,5 +1,6 @@
 import 'package:uuid/uuid.dart';
 
+import '../services/clock_service.dart';
 import 'activity_priority.dart';
 import 'category.dart';
 
@@ -109,7 +110,13 @@ class Activity {
       case RepeatRule.weekly:
         return weekdays.contains(d.weekday) && !d.isBefore(date);
       case RepeatRule.monthly:
-        return d.day == date.day && !d.isBefore(date);
+        // Cohérent avec la planification : une activité au 31 sonne le
+        // dernier jour des mois courts (28/29/30) puis revient au 31. Sans
+        // ce clamp, les mois de 28-30 jours ne marqueraient jamais l'activité
+        // comme due alors que la notification a sonné.
+        final lastDay = DateTime(d.year, d.month + 1, 0).day;
+        final expected = date.day > lastDay ? lastDay : date.day;
+        return d.day == expected && !d.isBefore(date);
     }
   }
 
@@ -169,17 +176,13 @@ class Activity {
     );
   }
 
-  static String dateKey(DateTime day) {
-    final d = DateTime(day.year, day.month, day.day);
-    return '${d.year.toString().padLeft(4, '0')}-'
-        '${d.month.toString().padLeft(2, '0')}-'
-        '${d.day.toString().padLeft(2, '0')}';
-  }
+  /// Clé stable `yyyy-MM-dd` du jour (source unique : `DayKey`).
+  static String dateKey(DateTime day) => DayKey.key(day);
 
-  static DateTime parseDateKey(String key) {
-    final parts = key.split('-').map(int.parse).toList();
-    return DateTime(parts[0], parts[1], parts[2]);
-  }
+  /// Décode une clé de jour, ou `null` si elle est malformée/inexistante.
+  /// Appelés sur des données du journal (potentiellement corrompues), les
+  /// appelants doivent gérer `null` pour ne pas faire crasher le démarrage.
+  static DateTime? parseDateKey(String key) => DayKey.tryDate(key);
 
   Map<String, dynamic> toMap() => {
         'id': id,
@@ -197,19 +200,45 @@ class Activity {
         'notificationId': notificationId,
       };
 
-  factory Activity.fromMap(Map<String, dynamic> map) => Activity(
-        id: map['id'] as String,
-        name: map['name'] as String,
-        hour: map['hour'] as int,
-        minute: map['minute'] as int,
-        date: parseDateKey(map['date'] as String),
-        repeat: RepeatRuleX.fromName(map['repeat'] as String?),
-        weekdays: (map['weekdays'] as List?)?.cast<int>() ?? const [],
-        sound: (map['sound'] as String?) ?? 'default',
-        enabled: (map['enabled'] as bool?) ?? true,
-        priority: PriorityX.fromName(map['priority'] as String?),
-        categoryId: (map['categoryId'] as String?) ?? CategoryPresets.otherId,
-        completedDays: (map['completedDays'] as List?)?.cast<String>() ?? [],
-        notificationId: map['notificationId'] as int,
-      );
+  /// Restaure une activité depuis une carte stockée. Parsing défensif : une
+  /// valeur manquante ou mal typée retombe sur un défaut sûr plutôt que de
+  /// lever (une seule entrée corrompue ne doit pas bloquer le démarrage).
+  factory Activity.fromMap(Map<String, dynamic> map) {
+    final id = _asString(map['id']);
+    final name = _asString(map['name']);
+    final date = _asDate(map['date']);
+    if (id == null || name == null || date == null) {
+      throw const FormatException('Activité stockée invalide');
+    }
+    return Activity(
+      id: id,
+      name: name,
+      hour: _asInt(map['hour']) ?? 0,
+      minute: _asInt(map['minute']) ?? 0,
+      date: date,
+      repeat: RepeatRuleX.fromName(_asString(map['repeat'])),
+      weekdays: _asIntList(map['weekdays']) ?? const [],
+      sound: _asString(map['sound']) ?? 'default',
+      enabled: _asBool(map['enabled']) ?? true,
+      priority: PriorityX.fromName(_asString(map['priority'])),
+      categoryId: _asString(map['categoryId']) ?? CategoryPresets.otherId,
+      completedDays: _asStringList(map['completedDays']) ?? const [],
+      notificationId: _asInt(map['notificationId']) ?? 0,
+    );
+  }
+
+  static String? _asString(Object? v) => v is String ? v : null;
+
+  static int? _asInt(Object? v) => v is int ? v : (v is num ? v.toInt() : null);
+
+  static bool? _asBool(Object? v) => v is bool ? v : null;
+
+  static DateTime? _asDate(Object? v) =>
+      v is String ? DayKey.tryDate(v) : null;
+
+  static List<String>? _asStringList(Object? v) =>
+      v is List ? v.whereType<String>().toList() : null;
+
+  static List<int>? _asIntList(Object? v) =>
+      v is List ? v.whereType<int>().toList() : null;
 }

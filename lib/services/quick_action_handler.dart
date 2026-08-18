@@ -2,7 +2,7 @@ import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:timezone/data/latest_all.dart' as tzdata;
 import 'package:timezone/timezone.dart' as tz;
 
-import '../l10n/app_strings.dart';
+import '../l10n/app_strings_ext.dart';
 import '../models/activity.dart';
 import '../models/notification_payload.dart';
 import '../models/snooze_action.dart';
@@ -72,9 +72,7 @@ abstract final class QuickActionHandler {
           notificationId:
               QuickActionJournal.deferIdFor(payload.activityId, occurrence),
         );
-        final strings = payload.locale.startsWith('en')
-            ? AppStrings.en
-            : AppStrings.fr;
+        final strings = appStringsFor(payload.locale);
 
         final scheduled = await NotificationService.scheduleDefer(
           plugin: plugin,

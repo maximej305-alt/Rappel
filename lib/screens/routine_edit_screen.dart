@@ -232,7 +232,9 @@ class _RoutineEditScreenState extends ConsumerState<RoutineEditScreen> {
     try {
       for (final a in newActivities) {
         await notifications.scheduleActivity(a,
-            reminderOffsetMinutes: offset, s: s);
+            reminderOffsetMinutes: offset,
+            s: s,
+            alarmMode: ref.read(settingsProvider).alarmMode);
         scheduled.add(a);
       }
     } catch (_) {

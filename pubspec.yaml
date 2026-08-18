@@ -1,5 +1,5 @@
 name: rappel_plus
-description: "A new Flutter project."
+description: "Rappel+ — reminders, routines and habits, designed for focus."
 # The following line prevents the package from being accidentally published to
 # pub.dev using `flutter pub publish`. This is preferred for private packages.
 publish_to: 'none' # Remove this line if you wish to publish to pub.dev
@@ -30,6 +30,8 @@ environment:
 dependencies:
   flutter:
     sdk: flutter
+  flutter_localizations:
+    sdk: flutter
 
   # The following adds the Cupertino Icons font to your application.
   # Use with the CupertinoIcons class for iOS style icons.
@@ -41,7 +43,7 @@ dependencies:
   flutter_local_notifications: ^22.3.0
   table_calendar: ^3.2.0
   fl_chart: ^1.2.0
-  intl: ^0.20.3
+  intl: ^0.20.2
   timezone: ^0.11.1
   uuid: ^4.6.0
   flutter_timezone: ^5.1.0
@@ -76,11 +78,50 @@ flutter:
 
   assets:
     - assets/sounds/
+    - assets/images/
 
   fonts:
     - family: Inter
       fonts:
         - asset: assets/fonts/Inter.ttf
+    - family: Nunito
+      fonts:
+        - asset: assets/fonts/Nunito.ttf
+    - family: Lora
+      fonts:
+        - asset: assets/fonts/Lora.ttf
+    - family: Montserrat
+      fonts:
+        - asset: assets/fonts/Montserrat.ttf
+    - family: Poppins
+      fonts:
+        - asset: assets/fonts/PoppinsRegular.ttf
+        - asset: assets/fonts/PoppinsBold.ttf
+          weight: 700
+    - family: PlayfairDisplay
+      fonts:
+        - asset: assets/fonts/PlayfairDisplay.ttf
+    - family: WorkSans
+      fonts:
+        - asset: assets/fonts/WorkSans.ttf
+    - family: Quicksand
+      fonts:
+        - asset: assets/fonts/Quicksand.ttf
+    - family: JetBrainsMono
+      fonts:
+        - asset: assets/fonts/JetBrainsMono.ttf
+    - family: Caveat
+      fonts:
+        - asset: assets/fonts/Caveat.ttf
+    - family: BebasNeue
+      fonts:
+        - asset: assets/fonts/BebasNeue.ttf
+    - family: SourceSans3
+      fonts:
+        - asset: assets/fonts/SourceSans3.ttf
+    - family: SpaceGrotesk
+      fonts:
+        - asset: assets/fonts/SpaceGrotesk.ttf
 
   # To add assets to your application, add an assets section, like this:
   # assets:

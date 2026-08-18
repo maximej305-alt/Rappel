@@ -35,7 +35,9 @@ class SoundPreviewService {
 
     _player ??= AudioPlayer();
     await _player!.stop();
-    await _player!.play(source, mode: PlayerMode.lowLatency);
+    // mediaPlayer est le mode le plus compatible (Android comme iOS), et le
+    // plus fiable sur les anciens appareils (« lowLatency » est Android-only).
+    await _player!.play(source, mode: PlayerMode.mediaPlayer);
     _playing = true;
     _currentId = soundId;
     return true;

@@ -2,22 +2,16 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../app_info.dart';
-import '../l10n/l10n.dart';
-import '../models/app_settings.dart';
-import '../models/category.dart';
-import '../models/lock_settings.dart';
-import '../models/sound_option.dart';
 import '../providers/providers.dart';
-import '../services/custom_sound_service.dart';
-import '../services/sound_preview_service.dart';
-import '../theme/app_theme.dart';
 import '../theme/app_typography.dart';
 import '../theme/dimens.dart';
-import '../widgets/app_dialog.dart';
-import '../widgets/category_editor_dialog.dart';
-import '../widgets/lock_setup.dart';
-import '../widgets/section_header.dart';
-import '../widgets/sound_picker_sheet.dart';
+import 'settings_pages.dart';
+
+// Alias de commodité — le projet utilise AppSpacing, pas Dimens.
+const double _xs = AppSpacing.xs;
+const double _s = AppSpacing.sm;
+const double _m = AppSpacing.md2;
+const double _l = AppSpacing.xl;
 
 class SettingsScreen extends ConsumerStatefulWidget {
   const SettingsScreen({super.key});
@@ -41,686 +35,154 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
   }
 
   @override
-  void dispose() {
-    SoundPreviewService.instance.stop();
-    super.dispose();
-  }
-
-  Future<void> _applySettings(AppSettings next) async {
-    final notifier = ref.read(settingsProvider.notifier);
-    final previous = ref.read(settingsProvider);
-    await notifier.update(next);
-
-    final needsReschedule =
-        previous.reminderOffsetMinutes != next.reminderOffsetMinutes ||
-        previous.locale != next.locale ||
-        previous.defaultSound != next.defaultSound;
-
-    if (needsReschedule) {
-      final notifications = ref.read(notificationServiceProvider);
-      final activities = ref.read(activitiesProvider);
-      final strings = next.locale.startsWith('en') ? AppStrings.en : AppStrings.fr;
-      await notifications.rescheduleAll(
-        activities,
-        reminderOffsetMinutes: next.reminderOffsetMinutes,
-        s: strings,
-      );
-    }
-  }
-  Future<void> _pickDefaultSound() async {
-    final settings = ref.read(settingsProvider);
-    final chosen = await showSoundPickerSheet(
-      context,
-      currentId: settings.defaultSound,
-      importCustom: CustomSoundService.pickAndImport,
-    );
-    if (chosen == null || !mounted) return;
-    await _applySettings(
-      ref.read(settingsProvider).copyWith(defaultSound: chosen.id),
-    );
-  }
-
-  Future<void> _testSound(String soundId) async {
-    await SoundPreviewService.instance.play(soundId);
-  }
-
-  @override
   Widget build(BuildContext context) {
-    final settings = ref.watch(settingsProvider);
-    final scheme = Theme.of(context).colorScheme;
     final s = ref.watch(stringsProvider);
-    final defaultSound = SoundOption.fromId(settings.defaultSound);
+    final settings = ref.watch(settingsProvider);
+    final lock = ref.watch(lockSettingsProvider);
+    final scheme = Theme.of(context).colorScheme;
 
     return Scaffold(
-      appBar: AppBar(title: Text(s.settings)),
+      appBar: AppBar(
+        title: Text(s.settings),
+      ),
       body: ListView(
-        padding: const EdgeInsets.all(AppSpacing.page),
+        padding: const EdgeInsets.symmetric(horizontal: _m, vertical: _s),
         children: [
-          SectionHeader.label(
-            s.appearance,
-            padding: const EdgeInsets.fromLTRB(4, 0, 4, 10),
+          // Apparence
+          _CategoryCard(
+            icon: Icons.palette_outlined,
+            iconColor: Colors.deepPurple,
+            title: s.appearanceSettings,
+            subtitle: '${s.theme}: ${settings.themeMode.name} • ${settings.fontFamily}',
+            onTap: () => Navigator.push(
+              context,
+              MaterialPageRoute(builder: (_) => const AppearanceSettingsPage()),
+            ),
           ),
-          _SectionCard(
-            children: [
-              _SettingRow(
-                icon: Icons.brightness_6,
-                title: s.theme,
-                subtitle: _themeLabel(settings.themeMode, s),
-                child: SegmentedButton<ThemeMode>(
-                  showSelectedIcon: false,
-                  style: const ButtonStyle(
-                    visualDensity: VisualDensity.compact,
-                  ),
-                  segments: [
-                    ButtonSegment(
-                      value: ThemeMode.light,
-                      label: Text(s.themeLight),
-                    ),
-                    ButtonSegment(
-                      value: ThemeMode.dark,
-                      label: Text(s.themeDark),
-                    ),
-                    ButtonSegment(
-                      value: ThemeMode.system,
-                      label: Text(s.themeSystem),
-                    ),
-                  ],
-                  selected: {settings.themeMode},
-                  onSelectionChanged: (selection) => _applySettings(
-                    settings.copyWith(themeMode: selection.first),
-                  ),
-                ),
-              ),
-              const Divider(height: 1),
-              _SettingRow(
-                icon: Icons.language,
-                title: s.language,
-                subtitle: settings.locale == 'fr' ? s.french : s.english,
-                child: SegmentedButton<String>(
-                  showSelectedIcon: false,
-                  style: const ButtonStyle(
-                    visualDensity: VisualDensity.compact,
-                  ),
-                  segments: const [
-                    ButtonSegment(value: 'fr', label: Text('FR')),
-                    ButtonSegment(value: 'en', label: Text('EN')),
-                  ],
-                  selected: {settings.locale},
-                  onSelectionChanged: (selection) =>
-                      _applySettings(settings.copyWith(locale: selection.first)),
-                ),
-              ),
-            ],
+
+          // Notifications & Alarme
+          _CategoryCard(
+            icon: Icons.notifications_active_outlined,
+            iconColor: Colors.amber.shade800,
+            title: s.notificationSettings,
+            subtitle: '${s.alarmMode}: ${settings.alarmMode ? s.enabled : s.disabled}',
+            onTap: () => Navigator.push(
+              context,
+              MaterialPageRoute(builder: (_) => const NotificationSettingsPage()),
+            ),
           ),
-          const SizedBox(height: 24),
-          SectionHeader.label(
-            s.notifications,
-            padding: const EdgeInsets.fromLTRB(4, 0, 4, 10),
+
+          // Sécurité & Verrou
+          _CategoryCard(
+            icon: Icons.lock_outline_rounded,
+            iconColor: Colors.blue.shade700,
+            title: s.securitySettings,
+            subtitle: '${s.lockApp}: ${lock.enabled ? lockMethodLabel(s, lock.method) : s.disabled}',
+            onTap: () => Navigator.push(
+              context,
+              MaterialPageRoute(builder: (_) => const SecuritySettingsPage()),
+            ),
           ),
-          _SectionCard(
-            children: [
-              ListTile(
-                contentPadding: EdgeInsets.zero,
-                leading: _TileIcon(icon: Icons.volume_up, scheme: scheme),
-                title: Text(s.defaultSound),
-                subtitle: Text(soundLabel(defaultSound, s)),
-                trailing: const Icon(Icons.chevron_right),
-                onTap: _pickDefaultSound,
-              ),
-              const Divider(height: 1),
-              ListTile(
-                contentPadding: EdgeInsets.zero,
-                leading: _TileIcon(
-                  icon: Icons.notifications_active_outlined,
-                  scheme: scheme,
-                ),
-                title: Text(s.reminderBefore),
-                subtitle: Text(
-                  settings.reminderOffsetMinutes == 0
-                      ? s.reminderAtExact
-                      : s.reminderMinutes(settings.reminderOffsetMinutes),
-                ),
-                trailing: DropdownButton<int>(
-                  value: settings.reminderOffsetMinutes,
-                  underline: const SizedBox.shrink(),
-                  borderRadius: BorderRadius.circular(16),
-                  items: [
-                    for (final option in AppSettings.reminderOptions)
-                      DropdownMenuItem(
-                        value: option,
-                        child: Text(
-                          option == 0
-                              ? s.reminderAtExact
-                              : s.reminderMinutes(option),
-                        ),
-                      ),
-                  ],
-                  onChanged: (value) {
-                    if (value != null) {
-                      _applySettings(
-                        settings.copyWith(reminderOffsetMinutes: value),
-                      );
-                    }
-                  },
-                ),
-              ),
-              const Divider(height: 1),
-              ListTile(
-                contentPadding: EdgeInsets.zero,
-                leading: _TileIcon(
-                  icon: Icons.notification_important,
-                  scheme: scheme,
-                ),
-                title: Text(s.trySound),
-                subtitle: Text(s.trySoundHint),
-                trailing: IconButton(
-                  tooltip: s.test,
-                  onPressed: () => _testSound(defaultSound.id),
-                  icon: const Icon(Icons.play_circle_fill),
-                  color: scheme.primary,
-                ),
-              ),
-            ],
+
+          // Langue & RTL
+          _CategoryCard(
+            icon: Icons.language_outlined,
+            iconColor: Colors.teal,
+            title: s.languageSettings,
+            subtitle: settings.locale.toUpperCase(),
+            onTap: () => Navigator.push(
+              context,
+              MaterialPageRoute(builder: (_) => const LanguageSettingsPage()),
+            ),
           ),
-          const SizedBox(height: 24),
-          SectionHeader.label(
-            s.categories,
-            padding: const EdgeInsets.fromLTRB(4, 0, 4, 10),
+
+          // Données & Catégories
+          _CategoryCard(
+            icon: Icons.storage_outlined,
+            iconColor: Colors.indigo,
+            title: s.dataManagement,
+            subtitle: s.manageCategories,
+            onTap: () => Navigator.push(
+              context,
+              MaterialPageRoute(builder: (_) => const DataSettingsPage()),
+            ),
           ),
-          _CategoriesSection(),
-          const SizedBox(height: 24),
-          SectionHeader.label(
-            s.security,
-            padding: const EdgeInsets.fromLTRB(4, 0, 4, 10),
+
+          // À propos
+          _CategoryCard(
+            icon: Icons.info_outline_rounded,
+            iconColor: Colors.pink,
+            title: s.aboutApp,
+            subtitle: s.versionInfo.replaceAll('{version}', _version ?? '1.0.0+1'),
+            onTap: () => Navigator.push(
+              context,
+              MaterialPageRoute(builder: (_) => const AboutSettingsPage()),
+            ),
           ),
-          _SecuritySection(),
-          const SizedBox(height: 24),
-          SectionHeader.label(
-            s.privacy,
-            padding: const EdgeInsets.fromLTRB(4, 0, 4, 10),
-          ),
-          _SectionCard(
-            children: [
-              ListTile(
-                contentPadding: EdgeInsets.zero,
-                leading: _TileIcon(icon: Icons.lock_outline, scheme: scheme),
-                title: Text(s.offline),
-                subtitle: Text(s.offlineHint),
-              ),
-            ],
-          ),
-          const SizedBox(height: 24),
+
+          const SizedBox(height: _l),
           Center(
             child: Text(
-              _version == null
-                  ? s.appName
-                  : '${s.appName} · v$_version',
-              style: AppTypography.caption.copyWith(
-                color: scheme.outline,
-                fontWeight: AppTypography.w600,
-              ),
+              '${s.appName} • ${_version ?? '1.0.0+1'}',
+              style: AppTypography.bodySmall.copyWith(color: scheme.outline),
             ),
           ),
         ],
       ),
     );
   }
-
-  String _themeLabel(ThemeMode mode, AppStrings s) => switch (mode) {
-        ThemeMode.light => s.themeLight,
-        ThemeMode.dark => s.themeDark,
-        ThemeMode.system => s.themeSystem,
-      };
 }
 
-class _SectionCard extends StatelessWidget {
-  const _SectionCard({required this.children});
-
-  final List<Widget> children;
-
-  @override
-  Widget build(BuildContext context) {
-    return Card(
-      child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-        child: Column(children: children),
-      ),
-    );
-  }
-}
-
-class _TileIcon extends StatelessWidget {
-  const _TileIcon({required this.icon, required this.scheme});
-
-  final IconData icon;
-  final ColorScheme scheme;
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.all(8),
-      decoration: BoxDecoration(
-        color: scheme.primaryContainer,
-        borderRadius: BorderRadius.circular(12),
-      ),
-      child: Icon(icon, color: scheme.onPrimaryContainer, size: 22),
-    );
-  }
-}
-
-class _SettingRow extends StatelessWidget {
-  const _SettingRow({
+class _CategoryCard extends StatelessWidget {
+  const _CategoryCard({
     required this.icon,
+    required this.iconColor,
     required this.title,
     required this.subtitle,
-    required this.child,
+    required this.onTap,
   });
 
   final IconData icon;
+  final Color iconColor;
   final String title;
   final String subtitle;
-  final Widget child;
+  final VoidCallback onTap;
 
   @override
   Widget build(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 8),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: [
-              _TileIcon(icon: icon, scheme: scheme),
-              const SizedBox(width: 12),
-              Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    title,
-                    style: TextStyle(fontWeight: AppTypography.w600),
-                  ),
-                  Text(
-                    subtitle,
-                    style: AppTypography.caption.copyWith(
-                      color: scheme.outline,
-                    ),
-                  ),
-                ],
-              ),
-            ],
-          ),
-          const SizedBox(height: 10),
-          SizedBox(width: double.infinity, child: child),
-        ],
+
+    return Card(
+      margin: const EdgeInsets.only(bottom: _m),
+      elevation: 0,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(16),
+        side: BorderSide(color: scheme.outlineVariant.withValues(alpha: 0.3)),
       ),
-    );
-  }
-}
-
-/// Section « Sécurité » : interrupteur de verrouillage + méthode active.
-class _SecuritySection extends ConsumerStatefulWidget {
-  @override
-  ConsumerState<_SecuritySection> createState() => _SecuritySectionState();
-}
-
-class _SecuritySectionState extends ConsumerState<_SecuritySection> {
-  bool _biometricSupported = false;
-
-  @override
-  void initState() {
-    super.initState();
-    _checkBiometric();
-  }
-
-  Future<void> _checkBiometric() async {
-    final ok = await ref.read(biometricServiceProvider).isSupported;
-    if (mounted) setState(() => _biometricSupported = ok);
-  }
-
-  Future<void> _onSwitch(bool enabled) async {
-    final lock = ref.read(lockSettingsProvider);
-    if (!enabled) {
-      if (lock.enabled) {
-        final ok = await promptLockVerification(ref, context, lock);
-        if (!ok || !mounted) return;
-      }
-      await ref
-          .read(lockSettingsProvider.notifier)
-          .update(const LockSettings(enabled: false));
-      return;
-    }
-
-    final method = await _pickMethod();
-    if (method == null || !mounted) return;
-
-    if (method == LockMethod.biometric && !_biometricSupported) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(context.l10n.noBiometric)),
-      );
-      return;
-    }
-
-    final setup = await promptLockSetup(context, method);
-    if (setup == null || !mounted) return;
-    await ref.read(lockSettingsProvider.notifier).update(setup);
-    if (!mounted) return;
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text(context.l10n.lockActivated)),
-    );
-  }
-
-  Future<LockMethod?> _pickMethod() async {
-    final scheme = Theme.of(context).colorScheme;
-    final s = context.l10n;
-    final methods = [
-      if (_biometricSupported) LockMethod.biometric,
-      ...LockMethod.values.where((m) => m != LockMethod.biometric),
-    ];
-    return showModalBottomSheet<LockMethod>(
-      context: context,
-      showDragHandle: true,
-      builder: (context) => SafeArea(
-        child: ListView(
-          shrinkWrap: true,
-          padding: const EdgeInsets.fromLTRB(8, 0, 8, 16),
-          children: [
-            Padding(
-              padding: const EdgeInsets.fromLTRB(20, 0, 20, 8),
-              child: Text(
-                s.lockMethodTitle,
-                style: AppTypography.sectionTitle.copyWith(
-                  color: scheme.onSurface,
-                ),
-              ),
-            ),
-            for (final method in methods)
-              ListTile(
-                leading: Icon(_methodIcon(method), color: scheme.primary),
-                title: Text(_methodLabel(method, s)),
-                subtitle: Text(_methodHint(method, s)),
-                trailing: const Icon(Icons.chevron_right),
-                onTap: () => Navigator.of(context).pop(method),
-              ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Future<void> _changeMethod() async {
-    final lock = ref.read(lockSettingsProvider);
-    final ok = await promptLockVerification(ref, context, lock);
-    if (!ok || !mounted) return;
-    final method = await _pickMethod();
-    if (method == null || method == lock.method || !mounted) return;
-    final setup = await promptLockSetup(context, method);
-    if (setup == null || !mounted) return;
-    await ref
-        .read(lockSettingsProvider.notifier)
-        .update(setup.copyWith(useBiometric: lock.useBiometric));
-    if (!mounted) return;
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text(
-          '${context.l10n.methodChanged} — ${_methodLabel(method, context.l10n)}',
-        ),
-      ),
-    );
-  }
-
-  Future<void> _changeCode() async {
-    final lock = ref.read(lockSettingsProvider);
-    final ok = await promptLockVerification(ref, context, lock);
-    if (!ok || !mounted) return;
-    final setup = await promptLockSetup(context, lock.method);
-    if (setup == null || !mounted) return;
-    await ref
-        .read(lockSettingsProvider.notifier)
-        .update(setup.copyWith(useBiometric: lock.useBiometric));
-    if (!mounted) return;
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text(context.l10n.codeUpdated)),
-    );
-  }
-
-  IconData _methodIcon(LockMethod method) => switch (method) {
-        LockMethod.pin => Icons.pin_outlined,
-        LockMethod.password => Icons.key_outlined,
-        LockMethod.pattern => Icons.gesture,
-        LockMethod.biometric => Icons.fingerprint,
-      };
-
-  String _methodLabel(LockMethod method, AppStrings s) => switch (method) {
-        LockMethod.pin => s.pinLabel,
-        LockMethod.password => s.passwordLabel,
-        LockMethod.pattern => s.patternLabel,
-        LockMethod.biometric => s.biometricLabel,
-      };
-
-  String _methodHint(LockMethod method, AppStrings s) => switch (method) {
-        LockMethod.pin => s.pinHint,
-        LockMethod.password => s.passwordHint,
-        LockMethod.pattern => s.patternHint,
-        LockMethod.biometric => s.biometricHint,
-      };
-
-  @override
-  Widget build(BuildContext context) {
-    final lock = ref.watch(lockSettingsProvider);
-    final scheme = Theme.of(context).colorScheme;
-    final s = context.l10n;
-
-    return _SectionCard(
-      children: [
-        SwitchListTile(
-          contentPadding: EdgeInsets.zero,
-          secondary: _TileIcon(
-            icon: lock.enabled ? Icons.lock : Icons.lock_open_outlined,
-            scheme: scheme,
+      child: ListTile(
+        contentPadding: const EdgeInsets.symmetric(horizontal: _m, vertical: _xs),
+        leading: Container(
+          width: 44,
+          height: 44,
+          decoration: BoxDecoration(
+            color: iconColor.withValues(alpha: 0.12),
+            borderRadius: BorderRadius.circular(12),
           ),
-          title: Text(s.lockApp),
-          subtitle: Text(
-            lock.enabled
-                ? s.lockMethod(_methodLabel(lock.method, s))
-                : s.lockDisabled,
-          ),
-          value: lock.enabled,
-          onChanged: _onSwitch,
+          child: Icon(icon, color: iconColor),
         ),
-        if (lock.enabled) ...[
-          const Divider(height: 1),
-          ListTile(
-            contentPadding: EdgeInsets.zero,
-            leading: _TileIcon(icon: Icons.swap_horiz, scheme: scheme),
-            title: Text(s.changeMethod),
-            subtitle: Text(_methodLabel(lock.method, s)),
-            trailing: const Icon(Icons.chevron_right),
-            onTap: _changeMethod,
-          ),
-          if (lock.method != LockMethod.biometric) ...[
-            const Divider(height: 1),
-            ListTile(
-              contentPadding: EdgeInsets.zero,
-              leading: _TileIcon(icon: Icons.edit_outlined, scheme: scheme),
-              title: Text(s.modifyCode),
-              trailing: const Icon(Icons.chevron_right),
-              onTap: _changeCode,
-            ),
-          ],
-          if (_biometricSupported) ...[
-            const Divider(height: 1),
-            SwitchListTile(
-              contentPadding: EdgeInsets.zero,
-              secondary: _TileIcon(icon: Icons.fingerprint, scheme: scheme),
-              title: Text(s.unlockFingerprint),
-              subtitle: Text(s.unlockFingerprintHint),
-              value: lock.useBiometric,
-              onChanged: (v) => ref
-                  .read(lockSettingsProvider.notifier)
-                  .update(lock.copyWith(useBiometric: v)),
-            ),
-          ],
-        ],
-      ],
-    );
-  }
-}
-
-/// Section « Catégories » : liste des catégories avec compteur d'activités,
-/// création, renommage, édition et suppression (avec réassignation vers
-/// « Autre »). Les catégories intégrées sont fixes (noms traduits) et ne
-/// peuvent être ni modifiées ni supprimées.
-class _CategoriesSection extends ConsumerWidget {
-  @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final s = ref.watch(stringsProvider);
-    final scheme = Theme.of(context).colorScheme;
-    final categories = ref.watch(categoriesProvider);
-    final activities = ref.watch(activitiesProvider);
-
-    final counts = <String, int>{};
-    for (final a in activities) {
-      counts[a.categoryId] = (counts[a.categoryId] ?? 0) + 1;
-    }
-
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.stretch,
-      children: [
-        _SectionCard(
-          children: [
-            for (final c in categories) ...[
-              ListTile(
-                contentPadding: EdgeInsets.zero,
-                leading: _CategoryAvatar(category: c),
-                title: Text(
-                  c.displayName(s),
-                  style: TextStyle(fontWeight: AppTypography.w600),
-                ),
-                subtitle: Text(s.activitiesLabel(counts[c.id] ?? 0)),
-                trailing: c.builtin
-                    ? null
-                    : Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          IconButton(
-                            tooltip: s.edit,
-                            onPressed: () => _editCategory(ref, context, c),
-                            icon: Icon(
-                              Icons.edit_outlined,
-                              size: 20,
-                              color: scheme.outline,
-                            ),
-                          ),
-                          IconButton(
-                            tooltip: s.delete,
-                            onPressed: () => _deleteCategory(ref, context, c),
-                            icon: Icon(
-                              Icons.delete_outline,
-                              size: 20,
-                              color: scheme.outline,
-                            ),
-                          ),
-                        ],
-                      ),
-              ),
-              const Divider(height: 1),
-            ],
-            const SizedBox(height: 4),
-            OutlinedButton.icon(
-              onPressed: () => _createCategory(ref, context),
-              icon: const Icon(Icons.add),
-              label: Text(s.newCategory),
-            ),
-          ],
+        title: Text(
+          title,
+          style: AppTypography.titleMedium.copyWith(fontWeight: AppTypography.w700),
         ),
-      ],
-    );
-  }
-
-  Future<void> _createCategory(WidgetRef ref, BuildContext context) async {
-    final data =
-        await showCategoryEditorDialog(context, title: context.l10n.newCategory);
-    if (data == null || !context.mounted) return;
-    final category = Category.create(
-      name: data.name,
-      icon: data.icon,
-      colorIndex: data.colorIndex,
-    );
-    await ref.read(categoriesProvider.notifier).create(category);
-  }
-
-  Future<void> _editCategory(
-      WidgetRef ref, BuildContext context, Category category) async {
-    final s = context.l10n;
-    final data = await showCategoryEditorDialog(
-      context,
-      initialName: category.displayName(s),
-      initialIcon: category.icon,
-      initialColorIndex: category.colorIndex,
-      title: s.editCategory,
-    );
-    if (data == null || !context.mounted) return;
-
-    // Les catégories intégrées sont fixes : seule une édition n'a pas lieu
-    // d'être ici (l'UI ne les affiche pas), garde défensive pour la clarté.
-    if (category.builtin) return;
-
-    final next = category.copyWith(
-      name: data.name.trim(),
-      icon: data.icon,
-      colorIndex: data.colorIndex,
-    );
-    await ref.read(categoriesProvider.notifier).update(next);
-  }
-
-  Future<void> _deleteCategory(
-      WidgetRef ref, BuildContext context, Category category) async {
-    if (category.isFallback) return; // la catégorie de repli n'est jamais supprimable
-    final s = context.l10n;
-    final activities = ref.read(activitiesProvider);
-    final affected =
-        activities.where((a) => a.categoryId == category.id).toList();
-
-    final ok = await showConfirmDialog(
-      context,
-      title: s.deleteCategoryTitle,
-      body: s.deleteCategoryBody(category.displayName(s), affected.length),
-      confirmLabel: s.delete,
-    );
-    if (ok != true || !context.mounted) return;
-
-    // 1. Réassigner puis sauver les activités (avant la suppression).
-    if (affected.isNotEmpty) {
-      final reassigned = [
-        for (final a in affected)
-          a.copyWith(categoryId: CategoryPresets.otherId),
-      ];
-      await ref.read(activitiesProvider.notifier).updateAll(reassigned);
-    }
-    // 2. Supprimer puis sauver les catégories.
-    await ref.read(categoriesProvider.notifier).delete(category.id);
-  }
-}
-
-/// Pastille colorée avec l'émoji de la catégorie.
-class _CategoryAvatar extends StatelessWidget {
-  const _CategoryAvatar({required this.category});
-
-  final Category category;
-
-  @override
-  Widget build(BuildContext context) {
-    final color = AppTheme.categoryColor(category.colorIndex);
-    return Container(
-      width: 40,
-      height: 40,
-      alignment: Alignment.center,
-      decoration: BoxDecoration(
-        color: color.withValues(alpha: 0.18),
-        shape: BoxShape.circle,
+        subtitle: Text(
+          subtitle,
+          style: AppTypography.bodySmall.copyWith(color: scheme.onSurfaceVariant),
+          maxLines: 1,
+          overflow: TextOverflow.ellipsis,
+        ),
+        trailing: Icon(Icons.chevron_right_rounded, color: scheme.outline),
+        onTap: onTap,
       ),
-      child: Text(category.icon, style: const TextStyle(fontSize: 17)),
     );
   }
 }

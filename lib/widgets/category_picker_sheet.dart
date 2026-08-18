@@ -130,15 +130,16 @@ class _CategoryPickerSheetState extends ConsumerState<_CategoryPickerSheet> {
 }
 
 /// Pastille colorée avec l'émoji de la catégorie.
-class _CategoryAvatar extends StatelessWidget {
+class _CategoryAvatar extends ConsumerWidget {
   const _CategoryAvatar({required this.category});
 
   final Category category;
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
+    final palette = ref.watch(paletteProvider);
     final color =
-        AppTheme.categoryColor(category.colorIndex);
+        AppTheme.categoryColor(category.colorIndex, palette: palette);
     return Container(
       width: 36,
       height: 36,

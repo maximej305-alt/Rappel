@@ -1,22 +1,33 @@
 import 'package:fl_chart/fl_chart.dart';
 import 'package:flutter/material.dart';
+import 'package:intl/intl.dart';
 
 import '../l10n/l10n.dart';
 import '../services/stats_service.dart';
 import '../theme/app_typography.dart';
+import '../utils/dates.dart';
 
 /// Graphique des 7 derniers jours : une barre par jour, colorée selon le
 /// statut de la journée (respectée, partielle, manquée, neutre).
 /// Source unique de vérité : [StatsCalculator].
 class HabitBarChart extends StatelessWidget {
-  const HabitBarChart({super.key, required this.days, required this.locale});
+  const HabitBarChart({
+    super.key,
+    required this.days,
+    required this.locale,
+    this.accent,
+  });
 
   final List<DayStat> days;
   final String locale;
 
+  /// Couleur d'accent des journées respectées ; `null` = couleur du thème.
+  final Color? accent;
+
   @override
   Widget build(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
+    final highlight = accent ?? scheme.primary;
 
     return SizedBox(
       height: 140,
@@ -43,13 +54,13 @@ class HabitBarChart extends StatelessWidget {
                     return const SizedBox.shrink();
                   }
                   final day = days[index].day;
-                  final labels = locale.startsWith('fr')
-                      ? const ['L', 'M', 'M', 'J', 'V', 'S', 'D']
-                      : const ['M', 'T', 'W', 'T', 'F', 'S', 'S'];
+                  final label = DateFormat.E(intlLocale(locale)).format(day);
                   return Padding(
                     padding: const EdgeInsets.only(top: 6),
                     child: Text(
-                      labels[day.weekday - 1],
+                      label,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
                       style: AppTypography.caption.copyWith(color: scheme.outline),
                     ),
                   );
@@ -65,7 +76,7 @@ class HabitBarChart extends StatelessWidget {
                   BarChartRodData(
                     toY: _barHeight(days[i]),
                     width: 16,
-                    color: _colorFor(days[i].status, scheme),
+                    color: _colorFor(days[i].status, scheme, highlight),
                     borderRadius: const BorderRadius.vertical(
                       top: Radius.circular(6),
                     ),
@@ -78,8 +89,9 @@ class HabitBarChart extends StatelessWidget {
     );
   }
 
-  Color _colorFor(DayStatus status, ColorScheme scheme) => switch (status) {
-        DayStatus.respected => scheme.primary,
+  Color _colorFor(DayStatus status, ColorScheme scheme, Color highlight) =>
+      switch (status) {
+        DayStatus.respected => highlight,
         DayStatus.partial => Colors.amber.shade700,
         DayStatus.missed => scheme.error,
         DayStatus.neutral => scheme.outlineVariant.withValues(alpha: 0.35),
@@ -98,14 +110,19 @@ class HabitChart extends StatelessWidget {
     super.key,
     required this.stats,
     required this.locale,
+    this.accent,
   });
 
   final HabitStats stats;
   final String locale;
 
+  /// Couleur d'accent des journées respectées ; `null` = couleur du thème.
+  final Color? accent;
+
   @override
   Widget build(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
+    final highlight = accent ?? scheme.primary;
     final s = context.l10n;
 
     return Card(
@@ -117,7 +134,7 @@ class HabitChart extends StatelessWidget {
           children: [
             Row(
               children: [
-                Icon(Icons.local_fire_department, color: scheme.primary),
+                Icon(Icons.local_fire_department, color: highlight),
                 const SizedBox(width: 8),
                 Text(
                   s.habitTitle,
@@ -137,7 +154,7 @@ class HabitChart extends StatelessWidget {
               ),
             ),
             const SizedBox(height: 16),
-            HabitBarChart(days: stats.last7Days, locale: locale),
+            HabitBarChart(days: stats.last7Days, locale: locale, accent: accent),
             const SizedBox(height: 8),
             Text(
               s.habitLast7,

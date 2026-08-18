@@ -7,6 +7,7 @@ import '../models/activity.dart';
 import '../providers/providers.dart';
 import '../services/stats_service.dart';
 import '../theme/app_typography.dart';
+import '../utils/dates.dart';
 import '../widgets/app_empty_state.dart';
 import '../widgets/habit_chart.dart';
 import '../widgets/section_header.dart';
@@ -22,6 +23,9 @@ class StatsScreen extends ConsumerWidget {
     final locale = ref.watch(localeProvider);
     final s = ref.watch(stringsProvider);
     final scheme = Theme.of(context).colorScheme;
+    final accent = ref
+        .watch(accentProvider)
+        .forBrightness(Theme.of(context).brightness);
 
     return Scaffold(
       appBar: AppBar(title: Text(s.stats)),
@@ -74,7 +78,11 @@ class StatsScreen extends ConsumerWidget {
                   child: Padding(
                     padding: const EdgeInsets.all(18),
                     child:
-                        HabitBarChart(days: stats.last7Days, locale: locale),
+                        HabitBarChart(
+                          days: stats.last7Days,
+                          locale: locale,
+                          accent: accent,
+                        ),
                   ),
                 ),
                 Padding(
@@ -380,7 +388,7 @@ class _HistoryRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final label = DateFormat('EEEE d MMMM', locale).format(stat.day);
+    final label = DateFormat('EEEE d MMMM', intlLocale(locale)).format(stat.day);
     final capitalized =
         label.isEmpty ? label : label[0].toUpperCase() + label.substring(1);
     final (icon, color) = switch (stat.status) {

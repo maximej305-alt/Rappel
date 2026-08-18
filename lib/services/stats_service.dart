@@ -178,7 +178,12 @@ abstract final class StatsCalculator {
       weekDue: weekDue,
       monthDone: monthDone,
       monthDue: monthDue,
-      last7Days: [for (var i = 6; i >= 0; i--) dayAt(t.subtract(Duration(days: i)))],
+      last7Days: [
+        for (var i = 6, d = DateTime(t.year, t.month, t.day - 6);
+            i >= 0;
+            i--, d = DateTime(d.year, d.month, d.day + 1))
+          dayAt(d),
+      ],
       monthDays: [
         for (var d = monthStart; !d.isAfter(t);
             d = DateTime(d.year, d.month, d.day + 1))

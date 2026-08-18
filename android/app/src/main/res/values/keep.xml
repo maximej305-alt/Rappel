@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Protège les drawables référenceées uniquement depuis le code Dart
+  (flutter_local_notifications les résout par nom de chaîne) : sans cette
+  liste, l'optimisation des ressources du build release les supprime et
+  initialize() échoue avec « @drawable/ic_notification could not be found »,
+  ce qui empêche toute planification d'alarme.
+-->
+<resources xmlns:tools="http://schemas.android.com/tools"
+    tools:keep="@drawable/ic_notification,@drawable/ic_action_done,@drawable/ic_action_snooze,@drawable/ic_action_tomorrow" />

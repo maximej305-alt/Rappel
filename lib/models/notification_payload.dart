@@ -6,8 +6,10 @@ import '../models/activity.dart';
 ///
 /// Une action rapide est traitée par un isolate d'arrière-plan (Android) qui
 /// n'a accès ni au stockage Hive ni aux réglages : tout ce dont il a besoin
-/// (activité, occurrence, son, répertoire du journal, fuseau horaire, langue)
-/// est donc sérialisé dans ce payload au moment de la planification.
+/// (activité, occurrence, son, répertoire du journal, fuseau horaire, langue,
+/// mode alarme) est donc sérialisé dans ce payload au moment de la
+/// planification. Sans `alarmMode`, les reports (snoozes) replanifiés par
+/// l'isolate retomberaient toujours en mode alarme (« FLAG_INSISTENT »).
 class NotificationPayload {
   const NotificationPayload({
     required this.activityId,
@@ -23,6 +25,7 @@ class NotificationPayload {
     this.journalDir = '',
     this.timezone = 'UTC',
     this.locale = 'fr',
+    this.alarmMode = false,
   });
 
   final String activityId;
@@ -43,6 +46,11 @@ class NotificationPayload {
   final String timezone;
   final String locale;
 
+  /// `true` si la notification initiale était en mode alarme (son insistant).
+  /// Conservé pour que les reports (+5, +10, +30 min, Demain) respectent le
+  /// réglage de l'utilisateur au lieu de repartir en alarme par défaut.
+  final bool alarmMode;
+
   /// Construit le payload d'une notification planifiée pour [occurrence]
   /// (voir [Activity.dateKey]).
   factory NotificationPayload.fromActivity(
@@ -52,6 +60,7 @@ class NotificationPayload {
     required String journalDir,
     required String timezone,
     String locale = 'fr',
+    bool alarmMode = false,
   }) {
     return NotificationPayload(
       activityId: activity.id,
@@ -67,6 +76,7 @@ class NotificationPayload {
       journalDir: journalDir,
       timezone: timezone,
       locale: locale,
+      alarmMode: alarmMode,
     );
   }
 
@@ -89,6 +99,7 @@ class NotificationPayload {
       journalDir: journalDir ?? this.journalDir,
       timezone: timezone,
       locale: locale,
+      alarmMode: alarmMode,
     );
   }
 
@@ -106,6 +117,7 @@ class NotificationPayload {
         'journalDir': journalDir,
         'timezone': timezone,
         'locale': locale,
+        'alarmMode': alarmMode,
       });
 
   static NotificationPayload? decode(String? raw) {
@@ -129,6 +141,7 @@ class NotificationPayload {
         journalDir: (m['journalDir'] as String?) ?? '',
         timezone: (m['timezone'] as String?) ?? 'UTC',
         locale: (m['locale'] as String?) ?? 'fr',
+        alarmMode: (m['alarmMode'] as bool?) ?? false,
       );
     } catch (_) {
       return null;

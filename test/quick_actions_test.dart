@@ -297,13 +297,20 @@ void main() {
       expect(buttons[3].title, AppStrings.fr.actionSnooze30);
     });
 
-    test('detailsFor embarque les actions rapides', () {
+    test('detailsFor embarque les actions rapides (catégorie alarme par défaut)', () {
       final details =
           NotificationService.instance.detailsFor('bell', AppStrings.fr);
       final android = details.android!;
       expect(android.actions, isNotNull);
       expect(android.actions!.length, 5);
-      expect(android.category, AndroidNotificationCategory.reminder);
+      // Mode alarme (défaut) : catégorie alarme, comme un réveil.
+      expect(android.category, AndroidNotificationCategory.alarm);
+    });
+
+    test('detailsFor en mode non-alarme utilise la catégorie rappel', () {
+      final details =
+          NotificationService.instance.detailsFor('bell', AppStrings.fr, false);
+      expect(details.android!.category, AndroidNotificationCategory.reminder);
     });
 
     test('deferBody : report à aujourd\'hui vs demain', () {

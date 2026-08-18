@@ -187,24 +187,46 @@ class QuickActionJournal {
 }
 
 /// Lecture / écriture du journal sur disque.
+///
+/// Sérialise les accès : l'isolate d'arrière-plan (actions rapides) et
+/// l'isolate principal (annulation, purge) peuvent écrire en parallèle.
+/// L'écriture passe par un fichier temporaire renommé en place pour ne
+/// jamais laisser un journal à moitié écrit.
 abstract final class QuickActionJournalStore {
   static const _fileName = 'quick_action_journal.json';
 
+  static Future<void> _busy = Future.value();
+
+  /// Verrou async : enchaîne l'opération après toutes les précédentes.
+  static Future<T> _lock<T>(Future<T> Function() op) {
+    final done = _busy.then((_) => op());
+    _busy = done.then((_) {}, onError: (_) {});
+    return done;
+  }
+
   static Future<QuickActionJournal> load(String journalDir) async {
     if (journalDir.isEmpty) return const QuickActionJournal();
-    final file = File('$journalDir/$_fileName');
-    try {
-      if (!await file.exists()) return const QuickActionJournal();
-      return QuickActionJournal.fromJson(jsonDecode(await file.readAsString()));
-    } catch (_) {
-      return const QuickActionJournal();
-    }
+    return _lock(() async {
+      final file = File('$journalDir/$_fileName');
+      try {
+        if (!await file.exists()) return const QuickActionJournal();
+        return QuickActionJournal.fromJson(
+          jsonDecode(await file.readAsString()),
+        );
+      } catch (_) {
+        return const QuickActionJournal();
+      }
+    });
   }
 
   static Future<void> save(String journalDir, QuickActionJournal journal) async {
     if (journalDir.isEmpty) return;
-    final file = File('$journalDir/$_fileName');
-    await file.writeAsString(jsonEncode(journal.toJson()));
+    await _lock(() async {
+      final file = File('$journalDir/$_fileName');
+      final tmp = File('$journalDir/$_fileName.tmp');
+      await tmp.writeAsString(jsonEncode(journal.toJson()));
+      await tmp.rename(file.path);
+    });
   }
 }
 
@@ -275,7 +297,12 @@ abstract final class QuickActionPlanner {
       case RepeatRule.weekly:
         return activity.weekdays.contains(day.weekday);
       case RepeatRule.monthly:
-        return day.day == activity.date.day;
+        // Même clamp que Activity.isDueOn / la planification : une activité
+        // au 31 est couverte le dernier jour des mois courts.
+        final lastDay = DateTime(day.year, day.month + 1, 0).day;
+        final expected =
+            activity.date.day > lastDay ? lastDay : activity.date.day;
+        return day.day == expected;
     }
   }
 }

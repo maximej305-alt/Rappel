@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../l10n/l10n.dart';
 import '../models/category.dart';
+import '../providers/providers.dart';
 import '../theme/app_theme.dart';
 import '../theme/app_typography.dart';
 
@@ -38,7 +40,7 @@ Future<CategoryEditorData?> showCategoryEditorDialog(
   );
 }
 
-class _CategoryEditorDialog extends StatefulWidget {
+class _CategoryEditorDialog extends ConsumerStatefulWidget {
   const _CategoryEditorDialog({
     required this.initialName,
     required this.initialIcon,
@@ -52,10 +54,11 @@ class _CategoryEditorDialog extends StatefulWidget {
   final String? title;
 
   @override
-  State<_CategoryEditorDialog> createState() => _CategoryEditorDialogState();
+  ConsumerState<_CategoryEditorDialog> createState() =>
+      _CategoryEditorDialogState();
 }
 
-class _CategoryEditorDialogState extends State<_CategoryEditorDialog> {
+class _CategoryEditorDialogState extends ConsumerState<_CategoryEditorDialog> {
   final _formKey = GlobalKey<FormState>();
   late final TextEditingController _nameController =
       TextEditingController(text: widget.initialName);
@@ -145,29 +148,36 @@ class _CategoryEditorDialogState extends State<_CategoryEditorDialog> {
                 ),
               ),
               const SizedBox(height: 8),
-              Wrap(
-                spacing: 10,
-                children: [
-                  for (var i = 0; i < AppTheme.categoryPalette.length; i++)
-                    InkWell(
-                      onTap: () => setState(() => _colorIndex = i),
-                      borderRadius: BorderRadius.circular(20),
-                      child: Container(
-                        width: 34,
-                        height: 34,
-                        decoration: BoxDecoration(
-                          shape: BoxShape.circle,
-                          color: AppTheme.categoryColor(i),
-                          border: _colorIndex == i
-                              ? Border.all(color: scheme.onSurface, width: 2.5)
-                              : null,
+              Consumer(
+                builder: (context, ref, _) {
+                  final palette = ref.watch(paletteProvider);
+                  return Wrap(
+                    spacing: 10,
+                    children: [
+                      for (var i = 0; i < palette.categoryColors.length; i++)
+                        InkWell(
+                          onTap: () => setState(() => _colorIndex = i),
+                          borderRadius: BorderRadius.circular(20),
+                          child: Container(
+                            width: 34,
+                            height: 34,
+                            decoration: BoxDecoration(
+                              shape: BoxShape.circle,
+                              color: AppTheme.categoryColor(i,
+                                  palette: palette),
+                              border: _colorIndex == i
+                                  ? Border.all(color: scheme.onSurface, width: 2.5)
+                                  : null,
+                            ),
+                            child: _colorIndex == i
+                                ? const Icon(Icons.check,
+                                    size: 16, color: Colors.white)
+                                : null,
+                          ),
                         ),
-                        child: _colorIndex == i
-                            ? const Icon(Icons.check, size: 16, color: Colors.white)
-                            : null,
-                      ),
-                    ),
-                ],
+                    ],
+                  );
+                },
               ),
             ],
           ),

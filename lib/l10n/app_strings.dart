@@ -1,17 +1,35 @@
 /// Fichier de traduction : toutes les chaînes de l'application.
 /// Le provider [AppStrings.fr] / [AppStrings.en] est choisi selon la langue.
 class AppStrings {
-  const AppStrings(this._t);
+  const AppStrings(this._t, [this.code = '']);
 
   final Map<String, String> _t;
 
-  String _(String key) => _t[key] ?? key;
+  /// Code de langue (« fr », « en », « es », …) porté par cette instance.
+  final String code;
+
+  /// Vrai si la langue s'écrit de droite à gauche (ex. Arabe).
+  bool get isRtl => code == 'ar';
+
+  /// Nombre de clés traduites (utile pour les tests et diagnostics).
+  int get length => _t.length;
+
+  /// Clés présentes dans ce dictionnaire.
+  Set<String> get keys => _t.keys.toSet();
+
+  /// Traduction exacte, sinon la valeur anglophone (référence), sinon la clé.
+  String _(String key) => _t[key] ?? en._t[key] ?? key;
 
   /// Accès générique à une clé (utile pour les jours et les sons).
-  String tr(String key) => _t[key] ?? key;
+  String tr(String key) => _t[key] ?? en._t[key] ?? key;
+
+
+
 
   // ————— Général —————
   String get appName => _('appName');
+  String get splashTagline => _('splashTagline');
+  String get ok => _('ok');
   String get cancel => _('cancel');
   String get save => _('save');
   String get delete => _('delete');
@@ -44,6 +62,8 @@ class AppStrings {
   String get statusNothing => _('statusNothing');
   String get statusAllDone => _('statusAllDone');
   String statusLeft(int count) => _('statusLeft').replaceAll('{count}', '$count');
+  String statusLeftPlural(int count) =>
+      _('statusLeftPlural').replaceAll('{count}', '$count');
   String get homeTitle => _('homeTitle');
   String get addActivity => _('addActivity');
   String get done => _('done');
@@ -112,9 +132,19 @@ class AppStrings {
   String get themeLight => _('themeLight');
   String get themeDark => _('themeDark');
   String get themeSystem => _('themeSystem');
+  String get amoled => _('amoled');
+  String get amoledHint => _('amoledHint');
+  String get textScale => _('textScale');
+  String get fontFamily => _('fontFamily');
+  String get systemFont => _('systemFont');
+  String get interFont => _('interFont');
   String get language => _('language');
   String get french => _('french');
   String get english => _('english');
+  String get palette => _('palette');
+  String paletteLabel(String id) => _('palette_$id');
+  String get accent => _('accent');
+  String accentLabel(String id) => _('accent_$id');
   String get notifications => _('notifications');
   String get defaultSound => _('defaultSound');
   String get defaultSoundTitle => _('defaultSoundTitle');
@@ -137,6 +167,9 @@ class AppStrings {
   String get unlockFingerprint => _('unlockFingerprint');
   String get unlockFingerprintHint => _('unlockFingerprintHint');
   String get privacy => _('privacy');
+  String get about => _('about');
+  String get aboutBody => _('aboutBody');
+  String get whatsNewTitle => _('whatsNewTitle');
   String get offline => _('offline');
   String get offlineHint => _('offlineHint');
   String get lockMethodTitle => _('lockMethodTitle');
@@ -152,6 +185,29 @@ class AppStrings {
   String get methodChanged => _('methodChanged');
   String get codeUpdated => _('codeUpdated');
   String get noBiometric => _('noBiometric');
+
+  // ————— Réglages additionnels (nouveaux écrans) —————
+  /// Alias lisibles utilisés dans les pages de réglages modernes.
+  String get fontSystem => _t['fontSystem'] ?? systemFont;
+  String get fontInter => _t['fontInter'] ?? interFont;
+  String get amoledMode => _t['amoledMode'] ?? amoled;
+  String get textSize => _t['textSize'] ?? textScale;
+  String get textSizeHint => _('textSizeHint');
+  String get alarmMode => _('alarmMode');
+  String get alarmModeHint => _('alarmModeHint');
+  String get dndIgnore => _('dndIgnore');
+  String get dndIgnoreHint => _('dndIgnoreHint');
+  String get dataManagement => _('dataManagement');
+  String get aboutApp => _('aboutApp');
+  String get versionInfo => _('versionInfo');
+  String get changelogTitle => _('changelogTitle');
+  String get aboutChangelog => _('aboutChangelog');
+  String get securitySettings => _('securitySettings');
+  String get notificationSettings => _('notificationSettings');
+  String get appearanceSettings => _('appearanceSettings');
+  String get languageSettings => _('languageSettings');
+  String get exactTime => _('exactTime');
+  String get manageCategories => _('manageCategories');
 
   // ————— Verrouillage —————
   String get lockAppTitle => _('lockAppTitle');
@@ -170,6 +226,7 @@ class AppStrings {
   String get continueLabel => _('continueLabel');
   String get verification => _('verification');
   String get enterToContinue => _('enterToContinue');
+  String get verifying => _('verifying');
   String get currentPassword => _('currentPassword');
   String get unlockPin => _('unlockPin');
   String get unlockPassword => _('unlockPassword');
@@ -185,6 +242,18 @@ class AppStrings {
   String get useFingerprint => _('useFingerprint');
   String get verifyBiometric => _('verifyBiometric');
   String get tryAgain => _('tryAgain');
+  String get fallbackTitle => _('fallbackTitle');
+  String get useFallbackPin => _('useFallbackPin');
+  String get useFallbackPassword => _('useFallbackPassword');
+  String get useFallbackPattern => _('useFallbackPattern');
+  String get retryBiometric => _('retryBiometric');
+  String get forgotCode => _('forgotCode');
+  String get forgotCodeTitle => _('forgotCodeTitle');
+  String get forgotCodeBody => _('forgotCodeBody');
+  String get forgotCodeOk => _('forgotCodeOk');
+  String get fallbackSubtitle => _('fallbackSubtitle');
+  String get keypadDelete => _('keypadDelete');
+  String get keypadError => _('keypadError');
 
   // ————— Notifications natives —————
   String notifReminder(String name, int minutes, String time) =>
@@ -344,10 +413,27 @@ class AppStrings {
   String get clearSearch => _('clearSearch');
   String get clearSearchFilters => _('clearSearchFilters');
 
+  // ————— Sélection de langue —————
+  /// Codes de langue supportés (en plus de `fr` et `en`, les fichiers
+  /// dédiés `lib/l10n/app_strings_ext.dart` apportent « es », « de »,
+  /// « it », « pt » avec repli automatique sur l'anglais).
+  static const List<String> supportedLocales = [
+    'fr',
+    'en',
+    'es',
+    'de',
+    'it',
+    'pt',
+    'zh',
+    'ar',
+  ];
+
   static const fr = AppStrings({
-    'appName': 'Rappel +',
+    'appName': 'Rappel+',
+    'ok': 'OK',
     'cancel': 'Annuler',
     'save': 'Enregistrer',
+    'splashTagline': 'Ne ratez plus rien.',
     'delete': 'Supprimer',
     'edit': 'Modifier',
     'add': 'Ajouter',
@@ -377,7 +463,8 @@ class AppStrings {
     'statusNothing': 'Rien de prévu, profite de ta journée',
     'statusAllDone': 'Tout est terminé, bravo !',
     'statusLeft': 'Il te reste {count} activité à faire',
-    'homeTitle': 'Rappel +',
+    'statusLeftPlural': 'Il te reste {count} activités à faire',
+    'homeTitle': 'Rappel+',
     'addActivity': 'Nouvelle activité',
     'done': 'faites',
     'emptyTodayTitle': 'Aucune activité aujourd\'hui',
@@ -441,9 +528,31 @@ class AppStrings {
     'themeLight': 'Clair',
     'themeDark': 'Sombre',
     'themeSystem': 'Auto',
+    'amoled': 'Mode AMOLED',
+    'amoledHint': 'Noirs profonds en thème sombre (économie OLED)',
+    'textScale': 'Taille du texte',
+    'fontFamily': 'Police de l\'interface',
+    'systemFont': 'Système',
+    'interFont': 'Inter',
     'language': 'Langue',
     'french': 'Français',
     'english': 'Anglais',
+    'palette': 'Palette de couleurs',
+    'palette_classic': 'Classique',
+    'palette_ocean': 'Océan',
+    'palette_purple': 'Violet',
+    'palette_forest': 'Forêt',
+    'palette_sunset': 'Coucher de soleil',
+    'palette_rose': 'Rose',
+    'palette_azure': 'Azur',
+    'palette_slate': 'Ardoise',
+    'accent': 'Couleur d\'accent',
+    'accent_indigo': 'Indigo',
+    'accent_teal': 'Turquoise',
+    'accent_rose': 'Rose',
+    'accent_amber': 'Ambre',
+    'accent_emerald': 'Émeraude',
+    'accent_purple': 'Violet',
     'notifications': 'Notifications',
     'defaultSound': 'Son par défaut',
     'defaultSoundTitle': 'Son par défaut des nouvelles activités',
@@ -464,6 +573,10 @@ class AppStrings {
     'unlockFingerprint': 'Déverrouillage par empreinte',
     'unlockFingerprintHint': 'En plus du code',
     'privacy': 'Vie privée',
+    'about': 'À propos',
+    'aboutBody': 'Rappel+ — rappels et habitudes, 100 % hors ligne. '
+        'Vos données restent chiffrées sur votre appareil.',
+    'whatsNewTitle': 'Nouveautés',
     'offline': '100 % hors-ligne',
     'offlineHint': 'Tes données restent sur ton appareil, chiffrées. '
         'Aucune donnée n\'est collectée, aucun service tiers.',
@@ -498,6 +611,7 @@ class AppStrings {
     'continueLabel': 'Continuer',
     'verification': 'Vérification',
     'enterToContinue': 'Identifiez-vous pour continuer',
+    'verifying': 'Vérification en cours…',
     'currentPassword': 'Mot de passe actuel',
     'unlockPin': 'Entrez votre code PIN',
     'unlockPassword': 'Entrez votre mot de passe',
@@ -511,8 +625,24 @@ class AppStrings {
     'checking': 'Vérification en cours…',
     'touchSensor': 'Touchez le capteur',
     'useFingerprint': 'Utiliser l\'empreinte',
-    'verifyBiometric': 'Déverrouillez Rappel + avec votre empreinte',
+    'verifyBiometric': 'Déverrouillez Rappel+ avec votre empreinte',
     'tryAgain': 'Réessayer',
+    'fallbackTitle': 'Méthode de secours',
+    'useFallbackPin': 'Utiliser le code PIN',
+    'useFallbackPassword': 'Utiliser le mot de passe',
+    'useFallbackPattern': 'Utiliser le motif',
+    'retryBiometric': 'Réessayer la biométrie',
+    'forgotCode': 'Code oublié ?',
+    'forgotCodeTitle': 'Code oublié ?',
+    'forgotCodeBody':
+        'Votre application est protégée : seul le code enregistré permet de '
+        'la déverrouiller. Il n\'existe volontairement aucun moyen de '
+        'récupération externe — vos données restent ainsi 100 % privées.',
+    'forgotCodeOk': 'Compris',
+    'fallbackSubtitle': 'Si la biométrie échoue, cette méthode '
+        'permettra de déverrouiller l\'application.',
+    'keypadDelete': 'Supprimer',
+    'keypadError': 'Code incorrect',
 
     'notifReminder': '« {name} » dans {minutes} min (à {time})',
     'notifNow': 'C\'est le moment de « {name} »',
@@ -647,12 +777,38 @@ class AppStrings {
     'clearAll': 'Tout effacer',
     'clearSearch': 'Effacer la recherche',
     'clearSearchFilters': 'Effacer la recherche et les filtres',
-  });
+    'appearanceSettings': 'Apparence',
+    'securitySettings': 'Sécurité',
+    'notificationSettings': 'Notifications',
+    'languageSettings': 'Langue',
+    'dataManagement': 'Données',
+    'aboutApp': 'À propos',
+    'versionInfo': 'Version {version}',
+    'changelogTitle': 'Nouveautés',
+    'textSizeHint':
+        'S\'applique à toute l\'interface, en plus de l\'accessibilité système.',
+    'alarmMode': 'Mode alarme',
+    'alarmModeHint':
+        'La sonnerie se répète jusqu\'à ce que tu agisses (Android).',
+    'dndIgnore': 'Ignorer « Ne pas déranger »',
+    'dndIgnoreHint':
+        'Permettre aux alarmes de sonner même en mode silencieux / NPD.',
+    'exactTime': 'À l\'heure exacte',
+    'manageCategories': 'Gérer les catégories',
+    'aboutChangelog': '• Sécurité optionnelle PBKDF2-HMAC-SHA256 '
+        '(PIN, mot de passe, motif, biométrie).\n'
+        '• Mode alarme natif avec sonnerie continue (Android).\n'
+        '• Polices système et Inter sélectionnables.\n'
+        '• Mode sombre AMOLED avec noirs profonds.\n'
+        '• Multilingue complet avec RTL (arabe) et chinois.\n'
+        '• Rappel en avance et report (5, 10, 30 min, demain).',
+  }, 'fr');
 
   static const en = AppStrings({
-    'appName': 'Rappel +',
+    'appName': 'Rappel+',
     'cancel': 'Cancel',
     'save': 'Save',
+    'splashTagline': 'Never miss a thing.',
     'delete': 'Delete',
     'edit': 'Edit',
     'add': 'Add',
@@ -682,7 +838,8 @@ class AppStrings {
     'statusNothing': 'Nothing planned, enjoy your day',
     'statusAllDone': 'All done, well done!',
     'statusLeft': '{count} activity left',
-    'homeTitle': 'Rappel +',
+    'statusLeftPlural': '{count} activities left',
+    'homeTitle': 'Rappel+',
     'addActivity': 'New activity',
     'done': 'done',
     'emptyTodayTitle': 'No activity today',
@@ -746,9 +903,31 @@ class AppStrings {
     'themeLight': 'Light',
     'themeDark': 'Dark',
     'themeSystem': 'Auto',
+    'amoled': 'AMOLED mode',
+    'amoledHint': 'Deep blacks in dark theme (OLED savings)',
+    'textScale': 'Text size',
+    'fontFamily': 'Interface font',
+    'systemFont': 'System',
+    'interFont': 'Inter',
     'language': 'Language',
     'french': 'French',
     'english': 'English',
+    'palette': 'Color palette',
+    'palette_classic': 'Classic',
+    'palette_ocean': 'Ocean',
+    'palette_purple': 'Purple',
+    'palette_forest': 'Forest',
+    'palette_sunset': 'Sunset',
+    'palette_rose': 'Rose',
+    'palette_azure': 'Azure',
+    'palette_slate': 'Slate',
+    'accent': 'Accent color',
+    'accent_indigo': 'Indigo',
+    'accent_teal': 'Teal',
+    'accent_rose': 'Rose',
+    'accent_amber': 'Amber',
+    'accent_emerald': 'Emerald',
+    'accent_purple': 'Purple',
     'notifications': 'Notifications',
     'defaultSound': 'Default sound',
     'defaultSoundTitle': 'Default sound for new activities',
@@ -769,6 +948,10 @@ class AppStrings {
     'unlockFingerprint': 'Unlock with fingerprint',
     'unlockFingerprintHint': 'In addition to the code',
     'privacy': 'Privacy',
+    'about': 'About',
+    'aboutBody': 'Rappel+ — reminders & habits, 100% offline. '
+        'Your data stays encrypted on your device.',
+    'whatsNewTitle': 'What\'s new',
     'offline': '100% offline',
     'offlineHint': 'Your data stays on your device, encrypted. '
         'No data is collected, no third-party services.',
@@ -803,6 +986,7 @@ class AppStrings {
     'continueLabel': 'Continue',
     'verification': 'Verification',
     'enterToContinue': 'Identify yourself to continue',
+    'verifying': 'Verifying…',
     'currentPassword': 'Current password',
     'unlockPin': 'Enter your PIN code',
     'unlockPassword': 'Enter your password',
@@ -816,8 +1000,24 @@ class AppStrings {
     'checking': 'Checking…',
     'touchSensor': 'Touch the sensor',
     'useFingerprint': 'Use fingerprint',
-    'verifyBiometric': 'Unlock Rappel + with your fingerprint',
+    'verifyBiometric': 'Unlock Rappel+ with your fingerprint',
     'tryAgain': 'Try again',
+    'fallbackTitle': 'Fallback method',
+    'useFallbackPin': 'Use the PIN code',
+    'useFallbackPassword': 'Use the password',
+    'useFallbackPattern': 'Use the pattern',
+    'retryBiometric': 'Retry biometrics',
+    'forgotCode': 'Forgot your code?',
+    'forgotCodeTitle': 'Forgot your code?',
+    'forgotCodeBody':
+        'Your app is protected: only the registered code can unlock it. '
+        'There is deliberately no external recovery method — your data '
+        'stays 100% private.',
+    'forgotCodeOk': 'Got it',
+    'fallbackSubtitle': 'If biometrics fail, this method will let you '
+        'unlock the app.',
+    'keypadDelete': 'Delete',
+    'keypadError': 'Wrong code',
 
     'notifReminder': '« {name} » in {minutes} min (at {time})',
     'notifNow': 'Time for « {name} »',
@@ -952,5 +1152,30 @@ class AppStrings {
     'clearAll': 'Clear all',
     'clearSearch': 'Clear search',
     'clearSearchFilters': 'Clear search and filters',
-  });
+    'appearanceSettings': 'Appearance',
+    'securitySettings': 'Security',
+    'notificationSettings': 'Notifications',
+    'languageSettings': 'Language',
+    'dataManagement': 'Data',
+    'aboutApp': 'About',
+    'versionInfo': 'Version {version}',
+    'changelogTitle': 'What\'s new',
+    'textSizeHint':
+        'Applies to the whole interface, on top of system accessibility.',
+    'alarmMode': 'Alarm mode',
+    'alarmModeHint':
+        'The ringtone repeats until you act (Android).',
+    'dndIgnore': 'Ignore "Do Not Disturb"',
+    'dndIgnoreHint':
+        'Let alarms ring even in silent / DND mode.',
+    'exactTime': 'At the exact time',
+    'manageCategories': 'Manage categories',
+    'aboutChangelog': '• Optional security PBKDF2-HMAC-SHA256 '
+        '(PIN, password, pattern, biometric).\n'
+        '• Native alarm mode with continuous ringtone (Android).\n'
+        '• Selectable system & Inter fonts.\n'
+        '• AMOLED dark mode with deep blacks.\n'
+        '• Full multilingual support with RTL (Arabic) and Chinese.\n'
+        '• Advance reminder and snooze (5, 10, 30 min, tomorrow).',
+  }, 'en');
 }

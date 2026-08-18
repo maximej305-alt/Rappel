@@ -7,6 +7,7 @@ import '../models/activity.dart';
 import '../providers/providers.dart';
 import '../theme/app_typography.dart';
 import '../utils/activity_sort.dart';
+import '../utils/dates.dart';
 import '../widgets/activity_tile.dart';
 import '../widgets/app_dialog.dart';
 import '../widgets/app_empty_state.dart';
@@ -156,9 +157,7 @@ class _HebdoScreenState extends ConsumerState<HebdoScreen> {
                   activity: activity,
                   day: _selectedDay,
                   onTap: () => _openEdit(activity),
-                  onToggle: () => ref
-                      .read(activitiesProvider.notifier)
-                      .toggleCompleted(activity.id, _selectedDay),
+                  onToggle: () => toggleCompletedWithAlarm(ref, activity, _selectedDay),
                   onDelete: () => _deleteActivity(activity, s),
                 ),
               ),
@@ -170,18 +169,18 @@ class _HebdoScreenState extends ConsumerState<HebdoScreen> {
   String _weekLabel(String locale) {
     final end = _weekStart.add(const Duration(days: 6));
     final fmt = DateFormat('d');
-    final fmtMonth = DateFormat('MMMM yyyy', locale.startsWith('fr') ? 'fr_FR' : 'en_US');
+    final fmtMonth = DateFormat('MMMM yyyy', intlLocale(locale));
     if (_weekStart.month == end.month) {
       return '${fmt.format(_weekStart)} – ${fmt.format(end)} ${fmtMonth.format(end)}';
     }
-    return '${fmt.format(_weekStart)} ${DateFormat('MMM', locale.startsWith('fr') ? 'fr_FR' : 'en_US').format(_weekStart)} – '
+    return '${fmt.format(_weekStart)} ${DateFormat('MMM', intlLocale(locale)).format(_weekStart)} – '
         '${fmt.format(end)} ${fmtMonth.format(end)}';
   }
 
   String formatDay(DateTime day, String locale) {
     return DateFormat(
       'EEEE d MMMM yyyy',
-      locale.startsWith('fr') ? 'fr_FR' : 'en_US',
+      intlLocale(locale),
     ).format(day);
   }
 

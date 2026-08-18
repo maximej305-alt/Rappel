@@ -35,8 +35,10 @@ class _LockGateState extends ConsumerState<LockGate>
 
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
-    // Relance le verrou quand l'app revient au premier plan.
-    if (state == AppLifecycleState.resumed && mounted) {
+    // Verrouille dès la mise en arrière-plan : l'écran de verrouillage est
+    // déjà en place au retour au premier plan (pas d'aperçu du contenu dans
+    // le sélecteur de tâches).
+    if (state == AppLifecycleState.paused && mounted) {
       final lock = ref.read(lockSettingsProvider);
       if (lock.enabled) {
         setState(() => _unlocked = false);

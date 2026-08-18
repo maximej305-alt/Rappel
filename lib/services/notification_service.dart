@@ -20,6 +20,12 @@ class NotificationService {
 
   static final NotificationService instance = NotificationService._();
 
+  /// Nombre de mois planifiés à l'avance pour une activité mensuelle.
+  /// `dayOfMonthAndTime` de Android épinglerait la récurrence au jour du
+  /// premier son (dérive 31 → 28 définitif) ; on programme donc chaque
+  /// occurrence ponctuellement sur un horizon glissant.
+  static const int _monthlyHorizonMonths = 12;
+
   final FlutterLocalNotificationsPlugin _plugin =
       FlutterLocalNotificationsPlugin();
 
@@ -62,7 +68,8 @@ class NotificationService {
 
     await _plugin.initialize(
       settings: const InitializationSettings(
-        android: AndroidInitializationSettings('@mipmap/ic_launcher'),
+        // Monochrome drawable required by Android's notification status bar.
+        android: AndroidInitializationSettings('@drawable/ic_notification'),
         iOS: DarwinInitializationSettings(
           requestAlertPermission: true,
           requestBadgePermission: true,
@@ -74,7 +81,8 @@ class NotificationService {
 
     final androidImpl = _plugin
         .resolvePlatformSpecificImplementation<
-            AndroidFlutterLocalNotificationsPlugin>();
+          AndroidFlutterLocalNotificationsPlugin
+        >();
     await androidImpl?.requestNotificationsPermission();
     _canScheduleExact =
         await androidImpl?.canScheduleExactNotifications() ?? false;
@@ -86,7 +94,8 @@ class NotificationService {
 
     final iosImpl = _plugin
         .resolvePlatformSpecificImplementation<
-            IOSFlutterLocalNotificationsPlugin>();
+          IOSFlutterLocalNotificationsPlugin
+        >();
     await iosImpl?.requestPermissions(alert: true, sound: true, badge: true);
 
     await _initJournalDir();
@@ -124,18 +133,31 @@ class NotificationService {
     return QuickActionJournalStore.load(dir);
   }
 
-  /// Tous les identifiants de notification liés à une activité
-  /// (plusieurs quand les jours de la semaine sont choisis).
+  /// Tous les identifiants de notification liés à une activité.
+  /// - hebdo : un ID par jour (`n*8+w`, w ∈ 1..7) ;
+  /// - mensuel : un ID par occurrence de l'horizon (`n*8+8+i`, i ∈ 0..11) ;
+  /// - sinon (unique, quotidien) : l'ID de base `n`.
+  /// Ne jamais annuler trop (ce serait tuer les rappels) ni trop peu (ce
+  /// serait laisser sonner des rappels orphelins).
   List<int> idsFor(Activity activity) {
     if (activity.repeat == RepeatRule.weekly) {
-      return [for (final w in activity.weekdays) activity.notificationId * 8 + w];
+      return [
+        for (final w in activity.weekdays) activity.notificationId * 8 + w,
+      ];
+    }
+    if (activity.repeat == RepeatRule.monthly) {
+      return [
+        for (var i = 0; i < _monthlyHorizonMonths; i++)
+          _monthlySlotId(activity, i),
+      ];
     }
     return [activity.notificationId];
   }
 
   /// Ensemble des identifiants de notification déjà utilisés par [activities].
-  /// Inclut le `notificationId` de chaque activité ET ses dérivés hebdo
-  /// (`n*8+w`), pour garantir l'unicité au niveau du scheduler Android.
+  /// Inclut le `notificationId` de chaque activité, ses dérivés hebdo
+  /// (`n*8+w`) et ses slots mensuels (`n*8+8+i`), pour garantir l'unicité au
+  /// niveau du scheduler Android.
   /// [extraUsed] permet d'exclure aussi les reports en vol du journal.
   static Set<int> usedNotificationIds(
     Iterable<Activity> activities, {
@@ -144,9 +166,12 @@ class NotificationService {
     final used = {...extraUsed};
     for (final a in activities) {
       used.add(a.notificationId);
-      if (a.repeat == RepeatRule.weekly) {
-        for (final w in a.weekdays) {
-          used.add(a.notificationId * 8 + w);
+      if (a.notificationId > 0) {
+        // Plage complète commune aux dérivés hebdo (w 1..7) ET mensuels
+        // (i 0..11) : on marque tout pour qu'aucun slot ne se chevauche
+        // entre deux activités différentes.
+        for (var s = 1; s < 8 + _monthlyHorizonMonths; s++) {
+          used.add(a.notificationId * 8 + s);
         }
       }
     }
@@ -154,8 +179,9 @@ class NotificationService {
   }
 
   /// Retourne un `notificationId` absent de [used], en vérifiant aussi les
-  /// dérivés hebdo (`n*8+w`) quand la semaine est choisie. Ne touche jamais
-  /// aux identifiants déjà enregistrés.
+  /// dérivés hebdo (`n*8+w`) et les slots mensuels (`n*8+8+i`) quand la
+  /// famille de l'activité les utilise. Ne touche jamais aux identifiants
+  /// déjà enregistrés.
   static int allocateFreshId(
     Set<int> used, {
     RepeatRule repeat = RepeatRule.none,
@@ -164,6 +190,18 @@ class NotificationService {
     while (true) {
       final candidate = Activity.newNotificationId();
       if (used.contains(candidate)) continue;
+      // Plage de dérivés que cette activité occupera (w 1..7 et/ou i 0..11).
+      final slotCount = repeat == RepeatRule.monthly
+          ? 1 + _monthlyHorizonMonths
+          : (repeat == RepeatRule.weekly ? 8 : 1);
+      var blocked = false;
+      for (var s = 1; s < slotCount; s++) {
+        if (used.contains(candidate * 8 + s)) {
+          blocked = true;
+          break;
+        }
+      }
+      if (blocked) continue;
       if (repeat == RepeatRule.weekly &&
           weekdays.any((w) => used.contains(candidate * 8 + w))) {
         continue;
@@ -186,17 +224,26 @@ class NotificationService {
       return activity;
     }
     return activity.copyWith(
-      notificationId: allocateFreshId(used,
-          repeat: activity.repeat, weekdays: activity.weekdays),
+      notificationId: allocateFreshId(
+        used,
+        repeat: activity.repeat,
+        weekdays: activity.weekdays,
+      ),
     );
   }
 
   /// Ensemble des identifiants qu'une activité utilisera une fois planifiée.
   static Set<int> idsSet(Activity activity) {
-    if (activity.repeat != RepeatRule.weekly) return {activity.notificationId};
-    return {
-      for (final w in activity.weekdays) activity.notificationId * 8 + w,
-    };
+    if (activity.repeat == RepeatRule.weekly) {
+      return {for (final w in activity.weekdays) activity.notificationId * 8 + w};
+    }
+    if (activity.repeat == RepeatRule.monthly) {
+      return {
+        for (var i = 0; i < _monthlyHorizonMonths; i++)
+          _monthlySlotId(activity, i),
+      };
+    }
+    return {activity.notificationId};
   }
 
   /// Planifie les rappels d'une activité (unique ou récurrente).
@@ -204,25 +251,133 @@ class NotificationService {
     Activity activity, {
     int reminderOffsetMinutes = 0,
     AppStrings? s,
+    bool alarmMode = true,
   }) async {
     if (!_initialized || !activity.enabled) return;
 
     switch (activity.repeat) {
       case RepeatRule.none:
-        await _scheduleOne(activity, activity.notificationId, null, 0,
-            reminderOffsetMinutes, s);
+        await _scheduleOne(
+          activity,
+          activity.notificationId,
+          null,
+          0,
+          reminderOffsetMinutes,
+          s,
+          alarmMode,
+        );
       case RepeatRule.daily:
-        await _scheduleOne(activity, activity.notificationId,
-            DateTimeComponents.time, 0, reminderOffsetMinutes, s);
+        await _scheduleOne(
+          activity,
+          activity.notificationId,
+          DateTimeComponents.time,
+          0,
+          reminderOffsetMinutes,
+          s,
+          alarmMode,
+        );
       case RepeatRule.weekly:
         for (final w in activity.weekdays) {
-          await _scheduleOne(activity, activity.notificationId * 8 + w,
-              DateTimeComponents.dayOfWeekAndTime, w, reminderOffsetMinutes, s);
+          await _scheduleOne(
+            activity,
+            activity.notificationId * 8 + w,
+            DateTimeComponents.dayOfWeekAndTime,
+            w,
+            reminderOffsetMinutes,
+            s,
+            alarmMode,
+          );
         }
       case RepeatRule.monthly:
-        await _scheduleOne(activity, activity.notificationId,
-            DateTimeComponents.dayOfMonthAndTime, 0, reminderOffsetMinutes, s);
+        // Les jours 29-31 n'existent pas tous les mois : `dayOfMonthAndTime`
+        // épinglerait la récurrence au jour du premier son (dérive
+        // définitive, ex. 31 → 28). On programme plutôt l'horizon des
+        // prochaines occurrences, chacune avec son propre jour calculé
+        // (31 → 28 févr. → 31 mars).
+        for (final (id, fire) in _monthlyOccurrences(
+          activity,
+          reminderOffsetMinutes,
+        )) {
+          await _scheduleMonthlyOne(
+            activity,
+            id,
+            fire,
+            reminderOffsetMinutes,
+            s,
+            alarmMode,
+          );
+        }
     }
+  }
+
+  /// Liste des prochaines occurrences mensuelles d'une activité, indexées par
+  /// un identifiant de notification fixe (le slot i de l'activité est TOUJOURS
+  /// `n*8+8+i`, stable quel que soit le mois : [idsFor] peut ainsi tout
+  /// annuler). Chaque occurrence est programmée ponctuellement (jamais de
+  /// répétition native Android) pour préserver le jour de base
+  /// (31 → 28 févr. → 31 mars).
+  List<(int, tz.TZDateTime)> _monthlyOccurrences(
+    Activity activity,
+    int reminderOffsetMinutes, [
+    DateTime? now,
+  ]) {
+    final clock = now ?? DateTime.now();
+    final result = <(int, tz.TZDateTime)>[];
+    var from = clock;
+    for (var i = 0; i < _monthlyHorizonMonths; i++) {
+      final fire = _nextFireTime(activity, 0, reminderOffsetMinutes, from);
+      if (fire == null) break;
+      result.add((_monthlySlotId(activity, i), fire));
+      // Avancer `from` après le fire pour que l'itération suivante calcule
+      // l'occurrence du mois d'après (jamais deux fire dans le même mois).
+      from = DateTime(
+        fire.year,
+        fire.month + 1,
+        1,
+        fire.hour,
+        fire.minute,
+      );
+    }
+    return result;
+  }
+
+  /// Identifiant fixe de l'occurrence mensuelle i de l'activité.
+  /// Plage `n*8+8 .. n*8+8+(_monthlyHorizonMonths-1)`, disjointe des slots
+  /// hebdo `n*8+1 .. n*8+7` et de l'ID de base `n` : stable dans le temps
+  /// (les annulations de [cancelActivity]/[cancelOccurrence] restent simples).
+  static int _monthlySlotId(Activity activity, int i) =>
+      activity.notificationId * 8 + 8 + i;
+
+  /// Programme une occurrence mensuelle ponctuelle (avec décalage de rappel
+  /// appliqué, comme [_scheduleOne]).
+  Future<void> _scheduleMonthlyOne(
+    Activity activity,
+    int id,
+    tz.TZDateTime fire,
+    int offsetMinutes,
+    AppStrings? s,
+    bool alarmMode,
+  ) async {
+    if (activity.isCompletedOn(fire.toLocal())) return;
+    final timeLabel =
+        '${activity.hour.toString().padLeft(2, '0')}:'
+        '${activity.minute.toString().padLeft(2, '0')}';
+    final strings = s ?? AppStrings.fr;
+    final body = offsetMinutes > 0
+        ? strings.notifReminder(activity.name, offsetMinutes, timeLabel)
+        : strings.notifNow(activity.name);
+    await _plugin.zonedSchedule(
+      id: id,
+      title: strings.appName,
+      body: body,
+      scheduledDate: fire,
+      notificationDetails: detailsFor(activity.sound, strings, alarmMode),
+      androidScheduleMode: _canScheduleExact
+          ? AndroidScheduleMode.exactAllowWhileIdle
+          : AndroidScheduleMode.inexactAllowWhileIdle,
+      matchDateTimeComponents: null, // ponctuel : le jour varie chaque mois
+      payload: _buildPayload(activity, id, fire, alarmMode: alarmMode),
+    );
   }
 
   Future<void> _scheduleOne(
@@ -232,15 +387,18 @@ class NotificationService {
     int weekday,
     int offsetMinutes,
     AppStrings? s,
-  ) async {
-    final fire = _nextFireTime(activity, weekday, offsetMinutes);
+    bool alarmMode, [
+    DateTime? from,
+  ]) async {
+    final fire = _nextFireTime(activity, weekday, offsetMinutes, from);
     if (fire == null) return;
 
     // Ne pas rappeler un jour déjà marqué « terminé » (via l'app ou une
     // action rapide différée), même si l'heure n'est pas encore passée.
     if (activity.isCompletedOn(fire.toLocal())) return;
 
-    final timeLabel = '${activity.hour.toString().padLeft(2, '0')}:'
+    final timeLabel =
+        '${activity.hour.toString().padLeft(2, '0')}:'
         '${activity.minute.toString().padLeft(2, '0')}';
     final strings = s ?? AppStrings.fr;
     final body = offsetMinutes > 0
@@ -252,18 +410,21 @@ class NotificationService {
       title: strings.appName,
       body: body,
       scheduledDate: fire,
-      notificationDetails: detailsFor(activity.sound, strings),
+      notificationDetails: detailsFor(activity.sound, strings, alarmMode),
       androidScheduleMode: _canScheduleExact
           ? AndroidScheduleMode.exactAllowWhileIdle
           : AndroidScheduleMode.inexactAllowWhileIdle,
       matchDateTimeComponents: components,
-      payload: _buildPayload(activity, id, fire),
+      payload: _buildPayload(activity, id, fire, alarmMode: alarmMode),
     );
   }
 
-  /// Payload embarqué dans la notification : l'isolate d'arrière-plan s'en
+/// Payload embarqué dans la notification : l'isolate d'arrière-plan s'en
   /// sert pour reconstruire l'activité et connaître l'occurrence touchée.
-  String _buildPayload(Activity activity, int id, tz.TZDateTime fire) {
+  /// Le mode alarme est embarqué pour que les reports (snoozes) respectent
+  /// le réglage de l'utilisateur au lieu de repartir en alarme par défaut.
+  String _buildPayload(Activity activity, int id, tz.TZDateTime fire,
+      {bool alarmMode = false}) {
     return NotificationPayload.fromActivity(
       activity,
       occurrence: Activity.dateKey(fire.toLocal()),
@@ -271,28 +432,58 @@ class NotificationService {
       journalDir: journalDir,
       timezone: localTimeZoneName(),
       locale: _locale,
+      alarmMode: alarmMode,
     ).encode();
   }
 
   /// Détails de notification avec le canal dédié à chaque son et les actions
   /// rapides (Terminé, +5, +10, +30, Demain) sur Android.
-  NotificationDetails detailsFor(String soundId, [AppStrings? s]) {
+  /// Quand [alarmMode] est actif (ou son "alarm"), le drapeau natif
+  /// `FLAG_INSISTENT` (0x00000004) fait répéter la sonnerie en boucle jusqu'à
+  /// l'intervention de l'utilisateur.
+  NotificationDetails detailsFor(
+    String soundId, [
+    AppStrings? s,
+    bool alarmMode = true,
+  ]) {
     final strings = s ?? AppStrings.fr;
-    final (channelId, channelName) = _channelFor(soundId, strings);
+    final id = CustomSoundService.fallbackSoundId(soundId);
+    final isAlarm = id == 'alarm' || alarmMode;
+    final (channelId, channelName) = _channelFor(
+      soundId,
+      strings,
+      isAlarm: isAlarm,
+    );
     return NotificationDetails(
       android: AndroidNotificationDetails(
         channelId,
         channelName,
         channelDescription: strings.notifChannelDesc,
-        importance: Importance.max,
-        priority: Priority.high,
-        sound: _soundFor(soundId),
-        category: AndroidNotificationCategory.reminder,
-        onlyAlertOnce: true,
+        importance: isAlarm ? Importance.max : Importance.high,
+        priority: isAlarm ? Priority.max : Priority.high,
+        channelBypassDnd: isAlarm,
+        sound: _soundFor(soundId, isAlarm: isAlarm),
+        category: isAlarm
+            ? AndroidNotificationCategory.alarm
+            : AndroidNotificationCategory.reminder,
+        audioAttributesUsage: isAlarm
+            ? AudioAttributesUsage.alarm
+            : AudioAttributesUsage.notification,
+        fullScreenIntent: isAlarm,
+        additionalFlags: isAlarm
+            ? Int32List.fromList([4])
+            : null, // 0x4 = FLAG_INSISTENT
+        onlyAlertOnce: false,
         actions: actionButtons(strings),
       ),
       iOS: DarwinNotificationDetails(
         sound: _iosSoundFor(soundId),
+        presentSound: true,
+        presentAlert: true,
+        presentBadge: true,
+        interruptionLevel: isAlarm
+            ? InterruptionLevel.timeSensitive
+            : InterruptionLevel.active,
       ),
     );
   }
@@ -315,37 +506,182 @@ class NotificationService {
   /// Boutons d'actions rapides affichés sur chaque notification.
   /// L'ordre suit la logique d'usage : Terminé d'abord, puis les reports.
   static List<AndroidNotificationAction> actionButtons(AppStrings s) => [
-        AndroidNotificationAction(
-          QuickAction.done.id,
-          s.actionDone,
-          icon: const DrawableResourceAndroidBitmap('ic_action_done'),
-        ),
-        AndroidNotificationAction(
-          QuickAction.snooze5.id,
-          s.actionSnooze5,
-          icon: const DrawableResourceAndroidBitmap('ic_action_snooze'),
-        ),
-        AndroidNotificationAction(
-          QuickAction.snooze10.id,
-          s.actionSnooze10,
-          icon: const DrawableResourceAndroidBitmap('ic_action_snooze'),
-        ),
-        AndroidNotificationAction(
-          QuickAction.snooze30.id,
-          s.actionSnooze30,
-          icon: const DrawableResourceAndroidBitmap('ic_action_snooze'),
-        ),
-        AndroidNotificationAction(
-          QuickAction.tomorrow.id,
-          s.actionTomorrow,
-          icon: const DrawableResourceAndroidBitmap('ic_action_tomorrow'),
-        ),
-      ];
+    AndroidNotificationAction(
+      QuickAction.done.id,
+      s.actionDone,
+      icon: const DrawableResourceAndroidBitmap('ic_action_done'),
+    ),
+    AndroidNotificationAction(
+      QuickAction.snooze5.id,
+      s.actionSnooze5,
+      icon: const DrawableResourceAndroidBitmap('ic_action_snooze'),
+    ),
+    AndroidNotificationAction(
+      QuickAction.snooze10.id,
+      s.actionSnooze10,
+      icon: const DrawableResourceAndroidBitmap('ic_action_snooze'),
+    ),
+    AndroidNotificationAction(
+      QuickAction.snooze30.id,
+      s.actionSnooze30,
+      icon: const DrawableResourceAndroidBitmap('ic_action_snooze'),
+    ),
+    AndroidNotificationAction(
+      QuickAction.tomorrow.id,
+      s.actionTomorrow,
+      icon: const DrawableResourceAndroidBitmap('ic_action_tomorrow'),
+    ),
+  ];
 
+  /// Annule toutes les alarmes d'une activité, y compris les reports
+  /// (+5, +10, +30 min, Demain) encore en vol. Nettoie aussi le journal des
+  /// actions rapides pour ne laisser aucun rappel orphelin sonner après la
+  /// suppression.
   Future<void> cancelActivity(Activity activity) async {
     if (!_initialized) return;
     for (final id in idsFor(activity)) {
       await _plugin.cancel(id: id);
+    }
+    // Reports d'occurrences de cette activité (snoozes en vol).
+    final journal = await _loadJournal();
+    for (final s in journal.snoozes) {
+      if (s.activityId == activity.id) {
+        await _plugin.cancel(
+          id: QuickActionJournal.deferIdFor(s.activityId, s.occurrence),
+        );
+      }
+    }
+    if (journal.snoozes.any((s) => s.activityId == activity.id) ||
+        journal.pending.any((p) => p.activityId == activity.id)) {
+      final cleaned = QuickActionJournal(
+        pending: journal.pending
+            .where((p) => p.activityId != activity.id)
+            .toList(),
+        snoozes: journal.snoozes
+            .where((s) => s.activityId != activity.id)
+            .toList(),
+      );
+      await QuickActionJournalStore.save(journalDir, cleaned);
+    }
+  }
+
+  /// Annule l'alarme d'une occurrence précise : le jour [day].
+  ///
+  /// Pour une activité hebdomadaire, seule l'alarme du jour concerné est
+  /// annulée (chaque jour a son propre identifiant). Quotidien partage une
+  /// seule alarme récurrente : on annule la série PUIS on la réarme à partir
+  /// du lendemain du jour marqué « terminé ». Mensuel : les occurrences sont
+  /// ponctuelles (un slot par mois), donc seules les occurrences du jour et de
+  /// la suite sont réarmées.
+  Future<void> cancelOccurrence(
+    Activity activity,
+    DateTime day, {
+    int reminderOffsetMinutes = 0,
+    AppStrings? s,
+    bool alarmMode = true,
+  }) async {
+    if (!_initialized || !activity.enabled) return;
+    switch (activity.repeat) {
+      case RepeatRule.weekly:
+        await _plugin.cancel(id: activity.notificationId * 8 + day.weekday);
+      case RepeatRule.daily:
+        await _plugin.cancel(id: activity.notificationId);
+        await _rearmSeriesFrom(
+          activity,
+          DateTime(day.year, day.month, day.day).add(const Duration(days: 1)),
+          reminderOffsetMinutes: reminderOffsetMinutes,
+          s: s,
+          alarmMode: alarmMode,
+        );
+      case RepeatRule.monthly:
+        await _rearmMonthlyFrom(
+          activity,
+          DateTime(day.year, day.month, day.day).add(const Duration(days: 1)),
+          reminderOffsetMinutes: reminderOffsetMinutes,
+          s: s,
+          alarmMode: alarmMode,
+        );
+      case RepeatRule.none:
+        await _plugin.cancel(id: activity.notificationId);
+    }
+  }
+
+  /// Une occurrence marquée « terminée » est re-cochée : restaure son
+  /// alarme (et la série des récurrents) sans toucher aux autres jours.
+  Future<void> reactivateOccurrence(
+    Activity activity,
+    DateTime day, {
+    int reminderOffsetMinutes = 0,
+    AppStrings? s,
+    bool alarmMode = true,
+  }) async {
+    if (!_initialized || !activity.enabled) return;
+    final weekly = activity.repeat == RepeatRule.weekly;
+    await _scheduleOne(
+      activity,
+      weekly ? activity.notificationId * 8 + day.weekday : activity.notificationId,
+      switch (activity.repeat) {
+        RepeatRule.weekly => DateTimeComponents.dayOfWeekAndTime,
+        RepeatRule.daily => DateTimeComponents.time,
+        RepeatRule.monthly => DateTimeComponents.dayOfMonthAndTime,
+        RepeatRule.none => null,
+      },
+      weekly ? day.weekday : 0,
+      reminderOffsetMinutes,
+      s,
+      alarmMode,
+      DateTime(day.year, day.month, day.day),
+    );
+  }
+
+  /// Réarme une série récurrente (quotidienne, un seul identifiant) à partir
+  /// du jour [startDay] pour exclure le jour marqué « terminé ».
+  Future<void> _rearmSeriesFrom(
+    Activity activity,
+    DateTime startDay, {
+    required int reminderOffsetMinutes,
+    required AppStrings? s,
+    required bool alarmMode,
+  }) async {
+    await _scheduleOne(
+      activity,
+      activity.notificationId,
+      DateTimeComponents.time,
+      0,
+      reminderOffsetMinutes,
+      s,
+      alarmMode,
+      startDay,
+    );
+  }
+
+  /// Réarme les occurrences mensuelles ponctuelles à partir de [startDay]
+  /// (voir [_monthlyOccurrences]). Annule d'abord l'horizon existant pour
+  /// éviter des doublons.
+  Future<void> _rearmMonthlyFrom(
+    Activity activity,
+    DateTime startDay, {
+    required int reminderOffsetMinutes,
+    required AppStrings? s,
+    required bool alarmMode,
+  }) async {
+    await _plugin.cancel(id: activity.notificationId);
+    for (final id in idsFor(activity)) {
+      await _plugin.cancel(id: id);
+    }
+    for (final (id, fire) in _monthlyOccurrences(
+      activity,
+      reminderOffsetMinutes,
+      startDay,
+    )) {
+      await _scheduleMonthlyOne(
+        activity,
+        id,
+        fire,
+        reminderOffsetMinutes,
+        s,
+        alarmMode,
+      );
     }
   }
 
@@ -363,9 +699,11 @@ class NotificationService {
     List<Activity> activities, {
     int reminderOffsetMinutes = 0,
     AppStrings? s,
+    bool alarmMode = true,
   }) async {
     if (!_initialized) return;
-    _locale = identical(s, AppStrings.en) ? 'en' : 'fr';
+    // Langue portée par l'instance passée (repli : celle déjà en mémoire).
+    _locale = (s != null && s.code.isNotEmpty) ? s.code : _locale;
     await _plugin.cancelAll();
 
     final journal = (await _loadJournal()).prune(DateTime.now());
@@ -383,11 +721,15 @@ class NotificationService {
         others,
         extraUsed: deferIds,
       );
-      await scheduleActivity(scheduled[i],
-          reminderOffsetMinutes: reminderOffsetMinutes, s: s);
+      await scheduleActivity(
+        scheduled[i],
+        reminderOffsetMinutes: reminderOffsetMinutes,
+        s: s,
+        alarmMode: alarmMode,
+      );
     }
 
-    await _rearmDeferred(journal, scheduled, s);
+    await _rearmDeferred(journal, scheduled, s, alarmMode);
   }
 
   /// Replanifie les reports en vol du journal (un `cancelAll` les a annulés).
@@ -396,6 +738,7 @@ class NotificationService {
     QuickActionJournal journal,
     List<Activity> activities,
     AppStrings? s,
+    bool alarmMode,
   ) async {
     final strings = s ?? AppStrings.fr;
     final byId = {for (final a in activities) a.id: a};
@@ -407,10 +750,13 @@ class NotificationService {
         activity,
         occurrence: entry.occurrence,
         notificationId: QuickActionJournal.deferIdFor(
-            entry.activityId, entry.occurrence),
+          entry.activityId,
+          entry.occurrence,
+        ),
         journalDir: journalDir,
         timezone: localTimeZoneName(),
         locale: _locale,
+        alarmMode: alarmMode,
       );
       await _scheduleDeferOne(payload, entry.fireAt, strings);
     }
@@ -429,7 +775,7 @@ class NotificationService {
         title: strings.appName,
         body: deferBody(strings, payload.name, fireAt),
         scheduledDate: tz.TZDateTime.from(fireAt, tz.local),
-        notificationDetails: detailsFor(payload.sound, strings),
+        notificationDetails: detailsFor(payload.sound, strings, payload.alarmMode),
         androidScheduleMode: _canScheduleExact
             ? AndroidScheduleMode.exactAllowWhileIdle
             : AndroidScheduleMode.inexactAllowWhileIdle,
@@ -456,8 +802,11 @@ class NotificationService {
         title: strings.appName,
         body: deferBody(strings, payload.name, fireAt),
         scheduledDate: tz.TZDateTime.from(fireAt, tz.local),
-        notificationDetails:
-            NotificationService.instance.detailsFor(payload.sound, strings),
+        notificationDetails: NotificationService.instance.detailsFor(
+          payload.sound,
+          strings,
+          payload.alarmMode,
+        ),
         androidScheduleMode: exact
             ? AndroidScheduleMode.exactAllowWhileIdle
             : AndroidScheduleMode.inexactAllowWhileIdle,
@@ -475,7 +824,8 @@ class NotificationService {
     final now = DateTime.now();
     final today = DateTime(now.year, now.month, now.day);
     final tomorrow = today.add(const Duration(days: 1));
-    final time = '${fireAt.hour.toString().padLeft(2, '0')}:'
+    final time =
+        '${fireAt.hour.toString().padLeft(2, '0')}:'
         '${fireAt.minute.toString().padLeft(2, '0')}';
     return Activity.dateKey(fireAt) == Activity.dateKey(tomorrow)
         ? strings.notifTomorrow(name, time)
@@ -497,6 +847,7 @@ class NotificationService {
       for (final ticket in journal.pending) {
         if (ticket.activityId != a.id) continue;
         final day = Activity.parseDateKey(ticket.occurrence);
+        if (day == null) continue; // occurrence illisible : écartée
         if (!next.isCompletedOn(day)) {
           next = next.withCompletedDay(day, true);
         }
@@ -513,11 +864,19 @@ class NotificationService {
 
   /// Version des canaux : la bump de ce préfixe force Android à recréer
   /// les canaux (le son d'un canal ne peut pas être modifié après création).
-  static const _channelPrefix = 'rappel_v3';
+  static const _channelPrefix = 'rappel_v5';
 
-  /// Le son « par défaut » utilise le son système par défaut.
-  static const _systemDefaultSound =
-      UriAndroidNotificationSound('content://settings/system/notification_sound');
+  /// Le son « par défaut » utilise le son système par défaut (rappel).
+  static const _systemDefaultSound = UriAndroidNotificationSound(
+    'content://settings/system/notification_sound',
+  );
+
+  /// En mode alarme, le son « par défaut » doit sonner réellement : le son de
+  /// notification peut être silencieux ou réglé en vibreur seul sur certains
+  /// appareils. Le son d'alarme système, lui, sonne toujours.
+  static const _systemAlarmSound = UriAndroidNotificationSound(
+    'content://settings/system/alarm_alert',
+  );
 
   /// Un son personnalisé est référencé par son chemin (`custom://<path>`).
   static String _customSoundPath(String soundId) =>
@@ -532,7 +891,8 @@ class NotificationService {
     return '${_channelPrefix}_custom_$digest';
   }
 
-  (String, String) _channelFor(String soundId, AppStrings s) {
+  (String, String) _channelFor(String soundId, AppStrings s,
+      {bool isAlarm = false}) {
     final id = CustomSoundService.fallbackSoundId(soundId);
     if (id.startsWith('custom://')) {
       return (_customChannelId(id), s.channelName(s.soundCustom));
@@ -547,6 +907,13 @@ class NotificationService {
       'alarm' => s.soundAlarm,
       _ => s.soundDefault,
     };
+    // Le canal du son « par défaut » dépend du mode : le son d'un canal est
+    // figé par Android, un canal séparé en mode alarme garantit un vrai son.
+    if (id == 'default') {
+      return isAlarm
+          ? ('${_channelPrefix}_default_alarm', s.channelName(soundName))
+          : ('${_channelPrefix}_default', s.channelName(soundName));
+    }
     return switch (id) {
       'chime1' => ('${_channelPrefix}_chime1', s.channelName(soundName)),
       'chime2' => ('${_channelPrefix}_chime2', s.channelName(soundName)),
@@ -558,80 +925,112 @@ class NotificationService {
     };
   }
 
-  AndroidNotificationSound? _soundFor(String soundId) {
+  AndroidNotificationSound? _soundFor(String soundId,
+      {bool isAlarm = false}) {
     final id = CustomSoundService.fallbackSoundId(soundId);
     if (id.startsWith('custom://')) {
       return UriAndroidNotificationSound(_customSoundPath(id));
     }
     return switch (id) {
-      'default' => _systemDefaultSound,
+      // En mode alarme le « défaut » doit sonner : on prend le son d'alarme
+      // système plutôt que le son de notification (souvent silencieux).
+      'default' => isAlarm ? _systemAlarmSound : _systemDefaultSound,
       'chime1' => const RawResourceAndroidNotificationSound('chime1'),
       'chime2' => const RawResourceAndroidNotificationSound('chime2'),
       'beep' => const RawResourceAndroidNotificationSound('beep'),
       'bell' => const RawResourceAndroidNotificationSound('bell'),
       'whistle' => const RawResourceAndroidNotificationSound('whistle'),
       'alarm' => const UriAndroidNotificationSound(
-          'content://settings/system/alarm_alert'),
-      _ => _systemDefaultSound,
+        'content://settings/system/alarm_alert',
+      ),
+      _ => isAlarm ? _systemAlarmSound : _systemDefaultSound,
     };
   }
 
   /// Prochaine occurrence future (décallée de [offsetMinutes]), ou `null`
   /// si une activité « une fois » est déjà passée.
-  tz.TZDateTime? _nextFireTime(Activity a, int weekday, int offsetMinutes,
-      [DateTime? now]) {
+  tz.TZDateTime? _nextFireTime(
+    Activity activity,
+    int weekday,
+    int offsetMinutes, [
+    DateTime? now,
+  ]) {
     final clock = now ?? DateTime.now();
-    final base =
-        DateTime(a.date.year, a.date.month, a.date.day, a.hour, a.minute);
 
+    // 1. Occurrence de base selon la règle de répétition.
     DateTime occ;
-    switch (a.repeat) {
+    switch (activity.repeat) {
       case RepeatRule.none:
-        occ = base;
+        occ = DateTime(
+          activity.date.year,
+          activity.date.month,
+          activity.date.day,
+          activity.hour,
+          activity.minute,
+        );
         break;
       case RepeatRule.daily:
-        occ = DateTime(clock.year, clock.month, clock.day, a.hour, a.minute);
+        occ = DateTime(clock.year, clock.month, clock.day, activity.hour, activity.minute);
         break;
       case RepeatRule.weekly:
         var daysAhead = weekday - clock.weekday;
         if (daysAhead < 0) daysAhead += 7;
-        occ = DateTime(clock.year, clock.month, clock.day, a.hour, a.minute)
-            .add(Duration(days: daysAhead));
+        occ = DateTime(clock.year, clock.month, clock.day, activity.hour, activity.minute).add(Duration(days: daysAhead));
         break;
       case RepeatRule.monthly:
-        occ = _nextMonthlyOccurrence(base, clock);
+        occ = _nextMonthlyOccurrence(
+          DateTime(
+            activity.date.year,
+            activity.date.month,
+            activity.date.day,
+            activity.hour,
+            activity.minute,
+          ),
+          clock,
+        );
         break;
     }
 
-    if (a.repeat == RepeatRule.none && occ.isBefore(clock)) return null;
-
     // Ne pas rappeler avant la date de création de l'activité.
-    while (a.repeat != RepeatRule.none &&
-        DateTime(occ.year, occ.month, occ.day).isBefore(a.date)) {
-      occ = switch (a.repeat) {
+    while (activity.repeat != RepeatRule.none &&
+        DateTime(occ.year, occ.month, occ.day).isBefore(activity.date)) {
+      occ = switch (activity.repeat) {
         RepeatRule.weekly => occ.add(const Duration(days: 7)),
-        RepeatRule.monthly => _advanceMonthly(base, occ),
+        RepeatRule.monthly => _advanceMonthly(activity.date, occ),
         _ => occ,
       };
     }
 
-    final withOffset = occ.subtract(Duration(minutes: offsetMinutes));
-    if (!withOffset.isAfter(clock)) {
-      // La prochaine occurrence est déjà passée → on avance d'un cycle.
-      occ = switch (a.repeat) {
+    // 2. Avancer l'occurrence jusqu'à ce que (occurrence - offset) soit
+    //    strictement dans le futur. C'est le calcul décisif : un `fire` dans
+    //    le passé fait échouer le scheduling et annule la notification.
+    var cycleCount = 0;
+    while (true) {
+      final fire = occ.subtract(Duration(minutes: offsetMinutes));
+      if (fire.isAfter(clock)) {
+        return tz.TZDateTime(
+          tz.local,
+          fire.year,
+          fire.month,
+          fire.day,
+          fire.hour,
+          fire.minute,
+        );
+      }
+
+      // Activité « une fois » déjà passée → aucune notification possible.
+      if (activity.repeat == RepeatRule.none) return null;
+
+      occ = switch (activity.repeat) {
         RepeatRule.daily => occ.add(const Duration(days: 1)),
         RepeatRule.weekly => occ.add(const Duration(days: 7)),
-        RepeatRule.monthly => _advanceMonthly(base, occ),
-        RepeatRule.none => occ,
+        RepeatRule.monthly => _advanceMonthly(activity.date, occ),
+        _ => occ,
       };
-      if (!occ.add(Duration(minutes: -offsetMinutes)).isAfter(clock)) {
-        return null;
-      }
-    }
 
-    final fire = occ.subtract(Duration(minutes: offsetMinutes));
-    return tz.TZDateTime(
-        tz.local, fire.year, fire.month, fire.day, fire.hour, fire.minute);
+      // Garde-fou : jamais de boucle infinie (offset déraisonnable, etc.).
+      if (++cycleCount > 120) return null;
+    }
   }
 
   DateTime _nextMonthlyOccurrence(DateTime base, DateTime now) {
@@ -643,7 +1042,12 @@ class NotificationService {
       final nextLast = _daysInMonth(nextMonth.year, nextMonth.month);
       final nextDay = base.day > nextLast ? nextLast : base.day;
       return DateTime(
-          nextMonth.year, nextMonth.month, nextDay, base.hour, base.minute);
+        nextMonth.year,
+        nextMonth.month,
+        nextDay,
+        base.hour,
+        base.minute,
+      );
     }
     return occ;
   }
@@ -654,11 +1058,16 @@ class NotificationService {
   /// celui de [occ], déjà clampé) pour éviter la dérive : 31 janv. → 28 févr.
   /// → 31 mars, jamais 28 mars.
   DateTime _advanceMonthly(DateTime base, DateTime occ) {
-    final nextMonth = DateTime(occ.year, occ.month + 1, 1, occ.hour, occ.minute);
+    final nextMonth = DateTime(
+      occ.year,
+      occ.month + 1,
+      1,
+      occ.hour,
+      occ.minute,
+    );
     final lastDay = _daysInMonth(nextMonth.year, nextMonth.month);
     final day = base.day > lastDay ? lastDay : base.day;
-    return DateTime(
-        nextMonth.year, nextMonth.month, day, occ.hour, occ.minute);
+    return DateTime(nextMonth.year, nextMonth.month, day, occ.hour, occ.minute);
   }
 
   /// Identifiant de canal utilisé pour un son personnalisé (test).
@@ -672,14 +1081,16 @@ class NotificationService {
     int weekday,
     int offsetMinutes, [
     DateTime? now,
-  ]) =>
-      _nextFireTime(a, weekday, offsetMinutes, now);
+  ]) => _nextFireTime(a, weekday, offsetMinutes, now);
 
   /// Canal + son effectifs pour un identifiant de son (test).
   @visibleForTesting
-  (String, String) channelFor(String soundId, AppStrings s) =>
-      _channelFor(soundId, s);
+  (String, String) channelFor(String soundId, AppStrings s,
+          {bool isAlarm = false}) =>
+      _channelFor(soundId, s, isAlarm: isAlarm);
 
   @visibleForTesting
-  AndroidNotificationSound? soundFor(String soundId) => _soundFor(soundId);
+  AndroidNotificationSound? soundFor(String soundId,
+          {bool isAlarm = false}) =>
+      _soundFor(soundId, isAlarm: isAlarm);
 }

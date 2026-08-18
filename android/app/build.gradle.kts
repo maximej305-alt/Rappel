@@ -28,6 +28,11 @@ android {
             // TODO: Add your own signing config for the release build.
             // Signing with the debug keys for now, so `flutter run --release` works.
             signingConfig = signingConfigs.getByName("debug")
+            // R8 supprime les drawables référencés uniquement depuis Dart (ic_notification,
+            // ic_action_*) car ils sont « not reachable » pour le shrinker, ce qui fait
+            // échouer NotificationService.init() sur Android. Désactivé pour tester.
+            isMinifyEnabled = false
+            isShrinkResources = false
         }
     }
 }

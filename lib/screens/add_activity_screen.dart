@@ -147,7 +147,9 @@ class _AddActivityScreenState extends ConsumerState<AddActivityScreen> {
       );
       await notifications.cancelActivity(widget.editingActivity!);
       await notifications.scheduleActivity(updated,
-          reminderOffsetMinutes: offset, s: s);
+          reminderOffsetMinutes: offset,
+          s: s,
+          alarmMode: ref.read(settingsProvider).alarmMode);
       await notifier.update(updated);
     } else {
       final weekdays =
@@ -171,7 +173,9 @@ class _AddActivityScreenState extends ConsumerState<AddActivityScreen> {
         ),
       );
       await notifications.scheduleActivity(activity,
-          reminderOffsetMinutes: offset, s: s);
+          reminderOffsetMinutes: offset,
+          s: s,
+          alarmMode: ref.read(settingsProvider).alarmMode);
       await notifier.add(activity);
     }
 

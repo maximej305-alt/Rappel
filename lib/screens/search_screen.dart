@@ -241,9 +241,7 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
             activity: activity,
             day: today,
             onTap: () => _openEdit(activity),
-            onToggle: () => ref
-                .read(activitiesProvider.notifier)
-                .toggleCompleted(activity.id, today),
+            onToggle: () => toggleCompletedWithAlarm(ref, activity, today),
             onDelete: () => _deleteActivity(activity, s),
           ),
         );

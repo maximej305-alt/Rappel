@@ -162,6 +162,13 @@ abstract final class AppTypography {
 
   /// Construit le `TextTheme` Material à partir de l'échelle « Rappel + »,
   /// coloré par [scheme] et composé dans [fontFamily] si fournie.
+  ///
+  /// Lorsque [fontFamily] est `null` (choix « Police système »), la famille est
+  /// **explicitement retirée** de chaque style : `TextStyle.apply` et
+  /// `copyWith(fontFamily: null)` conservent en effet la famille héritée de la
+  /// Typography Material par défaut (« Roboto » sur Android), ce qui figerait
+  /// la police système alors qu'il faut laisser chaque plateforme utiliser sa
+  /// police native (Roboto sur Android, SF Pro sur iOS).
   static TextTheme buildTextTheme(ColorScheme scheme, {String? fontFamily}) {
     final base = ThemeData(
       useMaterial3: true,
@@ -172,7 +179,7 @@ abstract final class AppTypography {
       displayColor: scheme.onSurface,
       fontFamily: fontFamily,
     );
-    return base.copyWith(
+    final theme = base.copyWith(
       headlineSmall: headlineSmall.copyWith(
         color: scheme.onSurface,
         fontFamily: fontFamily,
@@ -197,6 +204,64 @@ abstract final class AppTypography {
         color: scheme.onSurface,
         fontFamily: fontFamily,
       ),
+    );
+    return fontFamily == null ? _stripFontFamily(theme) : theme;
+  }
+
+  static TextTheme _stripFontFamily(TextTheme t) {
+    return stripFontFamily(t);
+  }
+
+  /// Retire la famille de police de **tous** les styles d'un [TextTheme].
+  /// Nécessaire car `copyWith`/`apply` avec `fontFamily: null` ne modifient
+  /// pas une famille déjà posée (« Roboto » dans la Typography par défaut),
+  /// et `ThemeData` fusionne toujours sa typographie par défaut dans le
+  /// `textTheme` fourni (`defaultTextTheme.merge(textTheme)`).
+  static TextTheme stripFontFamily(TextTheme t) {
+    TextStyle? clear(TextStyle? style) {
+      if (style == null) return null;
+      return TextStyle(
+        inherit: style.inherit,
+        color: style.color,
+        backgroundColor: style.backgroundColor,
+        fontSize: style.fontSize,
+        fontWeight: style.fontWeight,
+        fontStyle: style.fontStyle,
+        letterSpacing: style.letterSpacing,
+        wordSpacing: style.wordSpacing,
+        textBaseline: style.textBaseline,
+        height: style.height,
+        leadingDistribution: style.leadingDistribution,
+        locale: style.locale,
+        foreground: style.foreground,
+        background: style.background,
+        shadows: style.shadows,
+        fontFeatures: style.fontFeatures,
+        fontVariations: style.fontVariations,
+        decoration: style.decoration,
+        decorationColor: style.decorationColor,
+        decorationStyle: style.decorationStyle,
+        decorationThickness: style.decorationThickness,
+        debugLabel: style.debugLabel,
+      );
+    }
+
+    return TextTheme(
+      displayLarge: clear(t.displayLarge),
+      displayMedium: clear(t.displayMedium),
+      displaySmall: clear(t.displaySmall),
+      headlineLarge: clear(t.headlineLarge),
+      headlineMedium: clear(t.headlineMedium),
+      headlineSmall: clear(t.headlineSmall),
+      titleLarge: clear(t.titleLarge),
+      titleMedium: clear(t.titleMedium),
+      titleSmall: clear(t.titleSmall),
+      labelLarge: clear(t.labelLarge),
+      labelMedium: clear(t.labelMedium),
+      labelSmall: clear(t.labelSmall),
+      bodyLarge: clear(t.bodyLarge),
+      bodyMedium: clear(t.bodyMedium),
+      bodySmall: clear(t.bodySmall),
     );
   }
 }

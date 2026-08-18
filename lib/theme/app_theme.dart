@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 
 import 'app_colors.dart';
@@ -23,8 +24,15 @@ class AppTheme {
   static const List<Color> categoryPalette = AppColors.categoryPalette;
 
   /// Couleur d'une catégorie selon son [Category.colorIndex], cyclique.
-  static Color categoryColor(int index) =>
-      AppColors.categoryPalette[index % AppColors.categoryPalette.length];
+  /// La première couleur suit l'accent de la [palette] active ; les autres
+  /// restent identiques pour préserver la reconnaissance.
+  static Color categoryColor(
+    int index, {
+    ThemePalette palette = ThemePalette.classic,
+  }) {
+    final colors = palette.categoryColors;
+    return colors[index % colors.length];
+  }
 
   /// Dégradé d'en-tête (clair).
   static const LinearGradient headerGradient = AppColors.headerGradient;
@@ -33,27 +41,129 @@ class AppTheme {
   static const LinearGradient headerGradientDark =
       AppColors.headerGradientDark;
 
+  /// Dégradé d'en-tête d'une [palette] selon le thème clair/sombre.
+  static LinearGradient headerGradientFor(ThemePalette palette, bool isDark) =>
+      palette.headerGradientFor(isDark ? Brightness.dark : Brightness.light);
+
+  /// Couleur d'accent d'une [palette] selon le thème clair/sombre.
+  static Color seedFor(ThemePalette palette, bool isDark) =>
+      palette.seedFor(isDark ? Brightness.dark : Brightness.light);
+
   /// Thème clair historique (palette « Classic »).
-  static ThemeData get light => _base(ThemePalette.classic, Brightness.light);
+  static ThemeData get light => lightFor(ThemePalette.classic);
 
   /// Thème sombre historique (palette « Classic »).
-  static ThemeData get dark => _base(ThemePalette.classic, Brightness.dark);
+  static ThemeData get dark => darkFor(ThemePalette.classic);
 
-  static ThemeData _base(ThemePalette palette, Brightness brightness) {
+  /// Thème clair d'une palette donnée.
+  static ThemeData lightFor(
+    ThemePalette palette, {
+    String fontFamily = 'System',
+  }) =>
+      _base(palette, Brightness.light, fontFamily: fontFamily);
+
+  /// Thème sombre d'une palette donnée.
+  static ThemeData darkFor(
+    ThemePalette palette, {
+    bool amoled = false,
+    String fontFamily = 'System',
+  }) =>
+      _base(palette, Brightness.dark, amoled: amoled, fontFamily: fontFamily);
+
+  /// Polices de l'interface. « System » utilise la police par défaut du
+  /// système ; les autres sont embarquées. Une seule source de vérité :
+  /// chaque famille ajoutée ici doit être déclarée dans `pubspec.yaml` sous
+  /// le même nom (le test `font_typography_test.dart` le vérifie).
+  static const List<String> fontFamilies = [
+    'System',
+    'Inter',
+    'Nunito',
+    'Lora',
+    'Montserrat',
+    'Poppins',
+    'PlayfairDisplay',
+    'WorkSans',
+    'Quicksand',
+    'JetBrainsMono',
+    'Caveat',
+    'BebasNeue',
+    'SourceSans3',
+    'SpaceGrotesk',
+  ];
+
+  /// Libellé lisible d'une famille (ex. `PlayfairDisplay` → « Playfair
+  /// Display », `JetBrainsMono` → « JetBrains Mono »). Mappage explicite pour
+  /// un affichage fidèle au nom commercial de chaque police. « System » reste
+  /// tel quel : l'écran de réglages affiche le nom localisé à la place.
+  static const Map<String, String> fontDisplayNames = {
+    'System': 'System',
+    'Inter': 'Inter',
+    'Nunito': 'Nunito',
+    'Lora': 'Lora',
+    'Montserrat': 'Montserrat',
+    'Poppins': 'Poppins',
+    'PlayfairDisplay': 'Playfair Display',
+    'WorkSans': 'Work Sans',
+    'Quicksand': 'Quicksand',
+    'JetBrainsMono': 'JetBrains Mono',
+    'Caveat': 'Caveat',
+    'BebasNeue': 'Bebas Neue',
+    'SourceSans3': 'Source Sans 3',
+    'SpaceGrotesk': 'Space Grotesk',
+  };
+
+  /// Affichage d'une [family] ; repli sur la clé si le nom n'est pas connu.
+  static String fontDisplayName(String family) =>
+      fontDisplayNames[family] ?? family;
+
+  static ThemeData _base(
+    ThemePalette palette,
+    Brightness brightness, {
+    bool amoled = false,
+    String fontFamily = 'Inter',
+  }) {
     final scheme = ColorScheme.fromSeed(
       seedColor: palette.seedFor(brightness),
       brightness: brightness,
     );
     final isDark = brightness == Brightness.dark;
-    final surface = isDark ? const Color(0xFF13151E) : Colors.white;
+    // AMOLED : noirs profonds (économie d'énergie OLED) en thème sombre.
+    final surface = isDark
+        ? (amoled ? const Color(0xFF000000) : const Color(0xFF13151E))
+        : Colors.white;
+    // Garde un « noir très proche » pour les cartes en AMOLED, le vrai noir
+    // pur reste réservé au fond pour maximiser l'économie d'écran.
+    final cardColor = isDark
+        ? (amoled ? const Color(0xFF0D0D0D) : const Color(0xFF1D202C))
+        : const Color(0xFFF6F7FB);
+    final inputFill = isDark
+        ? (amoled ? const Color(0xFF111111) : const Color(0xFF1D202C))
+        : const Color(0xFFF0F1F6);
 
-    final textTheme = AppTypography.buildTextTheme(scheme, fontFamily: 'Inter');
+    final textTheme = AppTypography.buildTextTheme(
+      scheme,
+      fontFamily: fontFamily == 'System' ? null : fontFamily,
+    );
+
+    // Typographie par défaut sans famille : `ThemeData` fusionne toujours
+    // `defaultTextTheme.merge(textTheme)`, or les styles en `fontFamily: null`
+    // (choix « Police système ») deviendraient « Roboto » sans cela, ce qui
+    // figerait la police même sur iOS.
+    final baseTypography = Typography.material2021(
+      platform: defaultTargetPlatform,
+      colorScheme: scheme,
+    );
+    final typography = baseTypography.copyWith(
+      black: AppTypography.stripFontFamily(baseTypography.black),
+      white: AppTypography.stripFontFamily(baseTypography.white),
+    );
 
     return ThemeData(
       useMaterial3: true,
       colorScheme: scheme,
+      typography: typography,
       scaffoldBackgroundColor: surface,
-      fontFamily: 'Inter',
+      fontFamily: fontFamily == 'System' ? null : fontFamily,
       textTheme: textTheme,
       appBarTheme: AppBarTheme(
         elevation: 0,
@@ -68,9 +178,7 @@ class AppTheme {
       cardTheme: CardThemeData(
         elevation: 0,
         margin: EdgeInsets.zero,
-        color: isDark
-            ? const Color(0xFF1D202C)
-            : const Color(0xFFF6F7FB),
+        color: cardColor,
         surfaceTintColor: Colors.transparent,
         shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(AppRadius.xl)),
@@ -94,7 +202,7 @@ class AppTheme {
       ),
       inputDecorationTheme: InputDecorationTheme(
         filled: true,
-        fillColor: isDark ? const Color(0xFF1D202C) : const Color(0xFFF0F1F6),
+        fillColor: inputFill,
         hintStyle: TextStyle(color: scheme.outline, fontSize: AppTypography.sizeBase),
         labelStyle: TextStyle(color: scheme.outline, fontSize: AppTypography.sizeBase),
         prefixIconColor: scheme.outline,

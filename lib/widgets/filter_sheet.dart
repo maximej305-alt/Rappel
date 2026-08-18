@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../l10n/l10n.dart';
 import '../models/activity_priority.dart';
 import '../models/category.dart';
+import '../providers/providers.dart';
 import '../theme/app_theme.dart';
 import '../theme/app_typography.dart';
 import '../theme/dimens.dart';
@@ -272,14 +274,16 @@ class _OptionTile extends StatelessWidget {
 
 /// Pastille colorée avec l'émoji de la catégorie (cohérent avec
 /// category_picker_sheet).
-class _CategoryAvatar extends StatelessWidget {
+class _CategoryAvatar extends ConsumerWidget {
   const _CategoryAvatar({required this.category});
 
   final Category category;
 
   @override
-  Widget build(BuildContext context) {
-    final color = AppTheme.categoryColor(category.colorIndex);
+  Widget build(BuildContext context, WidgetRef ref) {
+    final palette = ref.watch(paletteProvider);
+    final color =
+        AppTheme.categoryColor(category.colorIndex, palette: palette);
     return Container(
       width: 30,
       height: 30,

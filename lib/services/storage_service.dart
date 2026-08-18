@@ -119,12 +119,38 @@ class StorageService {
   /// pas aux données quand le schéma est déjà à jour. Chaque étape préserve
   /// les données existantes (elle ne fait que compléter ou corriger).
   /// Exposé publiquement pour être testé sans stockage sécurisé.
-  static Future<void> migrate(Box box) async {
-    final stored = box.get(_schemaVersionKey, defaultValue: 1) as int;
-    if (stored >= schemaVersion) return;
+  ///
+  /// Défensif : si une étape échoue (données corrompues, types inattendus),
+  /// l'erreur est enregistrée mais n'empêche jamais le démarrage — l'app
+  /// reste utilisable et une tentative ultérieure (ou un futur schéma)
+  /// pourra corriger.
+  static Future<void> migrate(Box box, {void Function(String)? onError}) async {
+    int stored;
+    final rawVersion = box.get(_schemaVersionKey, defaultValue: 1);
+    if (rawVersion is int) {
+      stored = rawVersion;
+    } else {
+      stored = 1;
+      if (onError != null) {
+        onError('schemaVersion non int : ${rawVersion.runtimeType}');
+      }
+    }
+    if (stored > schemaVersion) {
+      // Version plus récente que connue (downgrade) : ne rien faire, ne pas
+      // écraser les données d'une version future.
+      return;
+    }
     for (var v = stored + 1; v <= schemaVersion; v++) {
       final step = _migrations[v];
-      if (step != null) await step(box);
+      if (step == null) continue;
+      try {
+        await step(box);
+      } catch (e, st) {
+        if (onError != null) onError('migration $v échouée : $e\n$st');
+        // Ne pas bloquer le démarrage ; le schéma n'est pas incrémenté, une
+        // prochaine tentative réessaiera.
+        return;
+      }
     }
     await box.put(_schemaVersionKey, schemaVersion);
   }
@@ -144,8 +170,9 @@ class StorageService {
     final raw = box.get(_activitiesKey);
     if (raw == null) return; // aucune donnée existante → rien à migrer
     final activities = <Map<String, dynamic>>[];
-    for (final e in raw as List) {
-      final map = Map<String, dynamic>.from(e as Map);
+    for (final e in raw is List ? raw : const []) {
+      if (e is! Map) continue; // entrée illisible : écartée, jamais un crash
+      final map = Map<String, dynamic>.from(e);
       if (map['notificationId'] is! int) {
         map['notificationId'] = Activity.newNotificationId();
       }
@@ -176,8 +203,9 @@ class StorageService {
     if (raw == null) return; // aucune donnée existante → rien à migrer
     var changed = false;
     final activities = <Map<String, dynamic>>[];
-    for (final e in raw as List) {
-      final map = Map<String, dynamic>.from(e as Map);
+    for (final e in raw is List ? raw : const []) {
+      if (e is! Map) continue; // entrée illisible : écartée, jamais un crash
+      final map = Map<String, dynamic>.from(e);
       if (map['priority'] is! String) {
         map['priority'] = Priority.normal.name;
         changed = true;
@@ -194,7 +222,13 @@ class StorageService {
   Future<List<int>> _loadOrCreateEncryptionKey() async {
     final existing = await _secureStorage.read(key: _hiveKeyStorageKey);
     if (existing != null && existing.isNotEmpty) {
-      return base64Decode(existing);
+      try {
+        return base64Decode(existing);
+      } catch (_) {
+        // La clé stockée est illisible : on en régénère une. Attention, la
+        // boîte chiffrée ne pourra pas être ouverte avec la nouvelle clé ;
+        // openBoxWithRecovery part en quarantaine puis recrée un coffre neuf.
+      }
     }
     final key = Hive.generateSecureKey();
     await _secureStorage.write(key: _hiveKeyStorageKey, value: base64Encode(key));
@@ -202,10 +236,19 @@ class StorageService {
   }
 
   List<Activity> loadActivities() {
-    final raw = _box?.get(_activitiesKey) as List? ?? const [];
-    return raw
-        .map((e) => Activity.fromMap(Map<String, dynamic>.from(e as Map)))
-        .toList();
+    final raw = _box?.get(_activitiesKey);
+    if (raw is! List) return const [];
+    final activities = <Activity>[];
+    for (final e in raw) {
+      try {
+        if (e is! Map) continue;
+        activities.add(Activity.fromMap(Map<String, dynamic>.from(e)));
+      } catch (_) {
+        // Entrée illisible : écartée proprement plutôt que de faire crasher
+        // toute l'app au démarrage. Elle reste présente dans la boîte.
+      }
+    }
+    return activities;
   }
 
   Future<void> saveActivities(List<Activity> activities) async {
@@ -216,10 +259,18 @@ class StorageService {
   }
 
   List<Routine> loadRoutines() {
-    final raw = _box?.get(_routinesKey) as List? ?? const [];
-    return raw
-        .map((e) => Routine.fromMap(Map<String, dynamic>.from(e as Map)))
-        .toList();
+    final raw = _box?.get(_routinesKey);
+    if (raw is! List) return const [];
+    final routines = <Routine>[];
+    for (final e in raw) {
+      try {
+        if (e is! Map) continue;
+        routines.add(Routine.fromMap(Map<String, dynamic>.from(e)));
+      } catch (_) {
+        // Entrée illisible : écartée sans bloquer le démarrage.
+      }
+    }
+    return routines;
   }
 
   Future<void> saveRoutines(List<Routine> routines) async {
@@ -230,11 +281,19 @@ class StorageService {
   }
 
   List<Category> loadCategories() {
-    final raw = _box?.get(_categoriesKey) as List? ?? const [];
+    final raw = _box?.get(_categoriesKey);
+    if (raw is! List) return List.of(CategoryPresets.builtins);
     if (raw.isEmpty) return List.of(CategoryPresets.builtins);
-    return raw
-        .map((e) => Category.fromMap(Map<String, dynamic>.from(e as Map)))
-        .toList();
+    final categories = <Category>[];
+    for (final e in raw) {
+      try {
+        if (e is! Map) continue;
+        categories.add(Category.fromMap(Map<String, dynamic>.from(e)));
+      } catch (_) {
+        // Entrée illisible : écartée sans bloquer le démarrage.
+      }
+    }
+    return categories.isEmpty ? List.of(CategoryPresets.builtins) : categories;
   }
 
   Future<void> saveCategories(List<Category> categories) async {
@@ -247,7 +306,13 @@ class StorageService {
   AppSettings loadSettings() {
     final raw = _box?.get(_settingsKey);
     if (raw == null) return const AppSettings();
-    return AppSettings.fromMap(Map<String, dynamic>.from(raw as Map));
+    try {
+      if (raw is! Map) return const AppSettings();
+      return AppSettings.fromMap(Map<String, dynamic>.from(raw));
+    } catch (_) {
+      // Réglages illisibles : on repart sur les défauts sans bloquer.
+      return const AppSettings();
+    }
   }
 
   Future<void> saveSettings(AppSettings settings) async {
@@ -257,7 +322,13 @@ class StorageService {
   LockSettings loadLockSettings() {
     final raw = _box?.get(_lockKey);
     if (raw == null) return const LockSettings();
-    return LockSettings.fromMap(Map<String, dynamic>.from(raw as Map));
+    try {
+      if (raw is! Map) return const LockSettings();
+      return LockSettings.fromMap(Map<String, dynamic>.from(raw));
+    } catch (_) {
+      // Verrou illisible : on retombe sur « désactivé » sans bloquer.
+      return const LockSettings();
+    }
   }
 
   Future<void> saveLockSettings(LockSettings lock) async {

@@ -8,7 +8,10 @@ class PatternLock extends StatefulWidget {
     super.key,
     required this.onCompleted,
     this.error = false,
+    this.checking = false,
     this.color,
+    this.semanticLabels,
+    this.semanticHint,
   });
 
   /// Appelé quand un motif d'au moins 4 points est relâché.
@@ -17,8 +20,19 @@ class PatternLock extends StatefulWidget {
   /// Passe à `true` pour déclencher l'animation d'erreur sur le dernier motif.
   final bool error;
 
+  /// `true` pendant une vérification : le tracé est conservé à l'écran, la
+  /// saisie est bloquée et un indicateur de progression s'affiche.
+  final bool checking;
+
   /// Couleur d'accent (par défaut : `colorScheme.primary`).
   final Color? color;
+
+  /// Libellés de chaque point lus par le lecteur d'écran (9 max, dans l'ordre
+  /// de la grille ligne par ligne). Par défaut : les chiffres 1 à 9.
+  final List<String>? semanticLabels;
+
+  /// Aide lue pour chaque point (par exemple « Motif à dessiner »).
+  final String? semanticHint;
 
   @override
   State<PatternLock> createState() => _PatternLockState();
@@ -72,7 +86,7 @@ class _PatternLockState extends State<PatternLock>
     });
     HapticFeedback.vibrate();
     _errorController.forward(from: 0);
-    Future.delayed(const Duration(milliseconds: 550), () {
+    Future.delayed(const Duration(milliseconds: 380), () {
       if (mounted) {
         _errorController.reset();
         setState(() => _showingError = false);
@@ -115,6 +129,7 @@ class _PatternLockState extends State<PatternLock>
   }
 
   void _onStart(Offset pos, Size size) {
+    if (widget.checking) return;
     final node = _nearest(pos, size);
     if (node < 0) return;
     HapticFeedback.selectionClick();
@@ -125,6 +140,7 @@ class _PatternLockState extends State<PatternLock>
   }
 
   void _onUpdate(Offset pos, Size size) {
+    if (widget.checking) return;
     if (_selected.isEmpty) return;
     setState(() => _current = pos);
     final node = _nearest(pos, size);
@@ -142,13 +158,45 @@ class _PatternLockState extends State<PatternLock>
   }
 
   void _onEnd() {
-    if (_selected.isEmpty) return;
+    if (_selected.isEmpty || widget.checking) return;
     final pattern = List<int>.of(_selected);
+    setState(() => _current = null);
+    if (pattern.length >= 4) {
+      // Le tracé reste visible : la vérification (asynchrone) est en cours
+      // et son résultat (succès ou erreur) le fait disparaître.
+      widget.onCompleted(pattern);
+    } else {
+      setState(() => _selected.clear());
+    }
+  }
+
+  String _semanticLabel(int node) {
+    final labels = widget.semanticLabels;
+    if (labels != null && node < labels.length) {
+      return labels[node];
+    }
+    return '${node + 1}';
+  }
+
+  String? get _semanticHint => widget.semanticHint;
+
+  /// Ajoute/retire un point via la sémantique (lecteur d'écran). TalkBack ne
+  /// peut pas tracer de geste : chaque point est exposé comme un bouton
+  /// à bascule.
+  void _toggleNode(int node) {
+    if (widget.checking) return;
+    HapticFeedback.selectionClick();
     setState(() {
-      _current = null;
-      _selected.clear();
+      if (_selected.contains(node)) {
+        _selected.remove(node);
+      } else {
+        _selected.add(node);
+      }
+      if (_selected.length >= 4) {
+        widget.onCompleted(List<int>.of(_selected));
+        _selected.clear();
+      }
     });
-    if (pattern.length >= 4) widget.onCompleted(pattern);
   }
 
   @override
@@ -166,25 +214,83 @@ class _PatternLockState extends State<PatternLock>
           builder: (context, _) {
             return Transform.translate(
               offset: Offset(_shake.value, 0),
-              child: GestureDetector(
-                behavior: HitTestBehavior.opaque,
-                onPanStart: (d) => _onStart(d.localPosition, size),
-                onPanUpdate: (d) => _onUpdate(d.localPosition, size),
-                onPanEnd: (_) => _onEnd(),
-                onPanCancel: _onEnd,
-                child: CustomPaint(
-                  size: size,
-                  painter: _PatternPainter(
-                    accent: widget.color ?? Theme.of(context).colorScheme.primary,
-                    errorColor: Theme.of(context).colorScheme.error,
-                    selected: _selected,
-                    current: _current,
-                    errorPattern: _showingError ? _lastErrorPattern : const [],
-                    errorProgress: _showingError
-                        ? _errorController.value
-                        : 0.0,
+              child: Stack(
+                alignment: Alignment.center,
+                children: [
+                  // Le tracé lui-même : invisible pour le lecteur d'écran
+                  // (les points interactifs sont exposés en overlay ci-dessous).
+                  ExcludeSemantics(
+                    child: GestureDetector(
+                      behavior: HitTestBehavior.opaque,
+                      onPanStart: (d) => _onStart(d.localPosition, size),
+                      onPanUpdate: (d) => _onUpdate(d.localPosition, size),
+                      onPanEnd: (_) => _onEnd(),
+                      onPanCancel: _onEnd,
+                      child: CustomPaint(
+                        size: size,
+                        painter: _PatternPainter(
+                          accent: widget.color ??
+                              Theme.of(context).colorScheme.primary,
+                          errorColor: Theme.of(context).colorScheme.error,
+                          selected: _selected,
+                          current: _current,
+                          errorPattern: _showingError
+                              ? _lastErrorPattern
+                              : const [],
+                          errorProgress: _showingError
+                              ? _errorController.value
+                              : 0.0,
+                        ),
+                      ),
+                    ),
                   ),
-                ),
+                  // Points accessibles individuellement (TalkBack/VoiceOver) :
+                  // chacun est un bouton à bascule de la grille 3×3.
+                  if (!widget.checking)
+                    for (var node = 0; node < 9; node++)
+                      Positioned.fill(
+                        child: IgnorePointer(
+                          child: Semantics(
+                            button: true,
+                            selected: _selected.contains(node) && !_showingError,
+                            label: _semanticLabel(node),
+                            hint: _semanticHint,
+                            onTap: () => _toggleNode(node),
+                          ),
+                        ),
+                      ),
+                  if (widget.checking)
+                    IgnorePointer(
+                      child: Container(
+                        width: 48,
+                        height: 48,
+                        decoration: BoxDecoration(
+                          shape: BoxShape.circle,
+                          color: Theme.of(
+                            context,
+                          ).colorScheme.surface.withValues(alpha: 0.85),
+                          boxShadow: [
+                            BoxShadow(
+                              color: Colors.black.withValues(alpha: 0.08),
+                              blurRadius: 12,
+                            ),
+                          ],
+                        ),
+                        child: Center(
+                          child: SizedBox(
+                            width: 26,
+                            height: 26,
+                            child: CircularProgressIndicator(
+                              strokeWidth: 3,
+                              color:
+                                  widget.color ??
+                                  Theme.of(context).colorScheme.primary,
+                            ),
+                          ),
+                        ),
+                      ),
+                    ),
+                ],
               ),
             );
           },

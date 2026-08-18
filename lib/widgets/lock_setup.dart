@@ -16,6 +16,7 @@ Future<LockSettings?> promptLockSetup(
   LockMethod method,
 ) async {
   final s = context.l10n;
+  final scheme = Theme.of(context).colorScheme;
   switch (method) {
     case LockMethod.pin:
       final pin = await _confirmTwice<String>(
@@ -25,13 +26,14 @@ Future<LockSettings?> promptLockSetup(
         subtitle: s.pinHint,
         build: (first) => PinPad(
           onCompleted: (value) => first(value),
-          color: Theme.of(context).colorScheme.primary,
+          color: scheme.primary,
+          semantics: PinPadSemantics(delete: s.delete, error: s.wrongPin),
         ),
         validate: (a, b) => a == b,
       );
       if (pin == null) return null;
       return const LockSettings(enabled: true, method: LockMethod.pin)
-          .copyWith(pinHash: LockSettings.hashPin(pin));
+          .copyWith(pinHash: await LockSettings.hashPin(pin));
 
     case LockMethod.password:
       final pw = await _confirmTwice<String>(
@@ -45,7 +47,7 @@ Future<LockSettings?> promptLockSetup(
       );
       if (pw == null) return null;
       return const LockSettings(enabled: true, method: LockMethod.password)
-          .copyWith(passwordHash: LockSettings.hashPassword(pw));
+          .copyWith(passwordHash: await LockSettings.hashPassword(pw));
 
     case LockMethod.pattern:
       final pattern = await _confirmTwice<List<int>>(
@@ -61,6 +63,7 @@ Future<LockSettings?> promptLockSetup(
               onCompleted: (p) {
                 if (p.length >= 4) first(p);
               },
+              semanticHint: s.patternHint,
             ),
           ),
         ),
@@ -68,17 +71,166 @@ Future<LockSettings?> promptLockSetup(
         errorMessage: s.patternMin,
       );
       if (pattern == null) return null;
+      // On ne conserve QUE le hash du motif — jamais le chemin en clair.
       return const LockSettings(enabled: true, method: LockMethod.pattern)
-          .copyWith(pattern: pattern);
+          .copyWith(patternHash: await LockSettings.hashPattern(pattern));
 
     case LockMethod.biometric:
-      return const LockSettings(
-        enabled: true,
-        method: LockMethod.biometric,
-        useBiometric: true,
+      // Demande si l'utilisateur veut un secours si la biométrie échoue.
+      final fallback = await _chooseFallback(context);
+      if (fallback == null || !context.mounted) return null;
+      switch (fallback.$1) {
+        case LockMethod.pin:
+          final pin = await _confirmTwice<String>(
+            context,
+            firstTitle: s.choosePin,
+            secondTitle: s.confirmPin,
+            subtitle: s.pinHint,
+build: (first) => PinPad(
+          onCompleted: (value) => first(value),
+          color: scheme.primary,
+          semantics: PinPadSemantics(delete: s.delete, error: s.wrongPin),
+        ),
+        validate: (a, b) => a == b,
       );
+          if (pin == null) return null;
+          return const LockSettings(
+            enabled: true,
+            method: LockMethod.biometric,
+            useBiometric: true,
+          ).copyWith(
+            pinHash: await LockSettings.hashPin(pin),
+            fallbackMethod: LockMethod.pin,
+          );
+
+        case LockMethod.password:
+          final pw = await _confirmTwice<String>(
+            context,
+            firstTitle: s.choosePassword,
+            secondTitle: s.confirmPassword,
+            subtitle: s.passwordMin,
+            build: (first) => _PasswordBox(onSubmit: first),
+            validate: (a, b) => a.length >= 4 && a == b,
+            errorMessage: s.min4Chars,
+          );
+          if (pw == null) return null;
+          return const LockSettings(
+            enabled: true,
+            method: LockMethod.biometric,
+            useBiometric: true,
+          ).copyWith(
+            passwordHash: await LockSettings.hashPassword(pw),
+            fallbackMethod: LockMethod.password,
+          );
+
+        case LockMethod.pattern:
+          final pattern = await _confirmTwice<List<int>>(
+            context,
+            firstTitle: s.drawPattern,
+            secondTitle: s.drawPatternAgain,
+            subtitle: s.patternMin,
+            build: (first) => Center(
+              child: SizedBox(
+                width: 236,
+                height: 236,
+                child: PatternLock(
+                  onCompleted: (p) {
+                    if (p.length >= 4) first(p);
+                  },
+                ),
+              ),
+            ),
+            validate: (a, b) => a.length >= 4 && listEquals(a, b),
+            errorMessage: s.patternMin,
+          );
+          if (pattern == null) return null;
+          return const LockSettings(
+            enabled: true,
+            method: LockMethod.biometric,
+            useBiometric: true,
+          ).copyWith(
+            patternHash: await LockSettings.hashPattern(pattern),
+            fallbackMethod: LockMethod.pattern,
+          );
+
+        case LockMethod.biometric:
+          // Défense en profondeur : la biométrie ne peut plus être choisie
+          // comme « secours » (le dialogue l'exclut). Si cet état surgit
+          // malgré tout, on refuse de créer un verrou sans secours réel
+          // (sinon l'app deviendrait inaccessible si l'empreinte se perd).
+          return null;
+      }
   }
 }
+
+/// Demande à l'utilisateur s'il souhaite une méthode de secours.
+/// Retourne `(method, null)` ou `null` si annulé.
+Future<(LockMethod, void)?> _chooseFallback(BuildContext context) async {
+  final s = context.l10n;
+  return showDialog<(LockMethod, void)>(
+    context: context,
+    builder: (context) => Dialog(
+      insetPadding: const EdgeInsets.symmetric(horizontal: 28, vertical: 24),
+      child: Container(
+        width: 340,
+        padding: const EdgeInsets.fromLTRB(20, 22, 20, 16),
+        decoration: BoxDecoration(
+          color: Theme.of(context).colorScheme.surface,
+          borderRadius: BorderRadius.circular(28),
+        ),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Text(
+              s.fallbackTitle,
+              textAlign: TextAlign.center,
+              style: AppTypography.titleScreen.copyWith(
+                color: Theme.of(context).colorScheme.onSurface,
+              ),
+            ),
+            const SizedBox(height: 6),
+            Text(
+              s.fallbackSubtitle,
+              textAlign: TextAlign.center,
+              style: AppTypography.captionMd.copyWith(
+                color: Theme.of(context).colorScheme.outline,
+              ),
+            ),
+            const SizedBox(height: 16),
+            for (final entry in [
+              (LockMethod.pin, s.useFallbackPin),
+              (LockMethod.password, s.useFallbackPassword),
+              (LockMethod.pattern, s.useFallbackPattern),
+            ]) ...[
+              ListTile(
+                leading: Icon(_fallbackIcon(entry.$1)),
+                title: Text(entry.$2),
+                onTap: () => Navigator.of(context).pop((entry.$1, null)),
+              ),
+            ],
+            const SizedBox(height: 8),
+            TextButton.icon(
+              onPressed: () => Navigator.of(context).pop(),
+              icon: const Icon(Icons.close, size: 18),
+              label: Text(context.l10n.cancel),
+              style: TextButton.styleFrom(
+                foregroundColor: Theme.of(context).colorScheme.outline,
+                minimumSize: const Size.fromHeight(40),
+              ),
+            ),
+          ],
+        ),
+      ),
+    ),
+  );
+}
+
+IconData _fallbackIcon(LockMethod m) => switch (m) {
+      LockMethod.pin => Icons.pin_outlined,
+      LockMethod.password => Icons.key_outlined,
+      LockMethod.pattern => Icons.gesture,
+      LockMethod.biometric => Icons.fingerprint,
+    };
 
 /// Confirmation en 2 étapes pour un code quelconque.
 Future<T?> _confirmTwice<T>(
@@ -157,7 +309,6 @@ class _SetupDialog<T> extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
-    final isDark = Theme.of(context).brightness == Brightness.dark;
 
     return Dialog(
       insetPadding: const EdgeInsets.symmetric(horizontal: 28, vertical: 24),
@@ -165,7 +316,7 @@ class _SetupDialog<T> extends StatelessWidget {
         width: 340,
         padding: const EdgeInsets.fromLTRB(20, 22, 20, 16),
         decoration: BoxDecoration(
-          color: isDark ? const Color(0xFF1D202C) : Colors.white,
+          color: Theme.of(context).colorScheme.surface,
           borderRadius: BorderRadius.circular(28),
         ),
         child: Column(
@@ -176,7 +327,7 @@ class _SetupDialog<T> extends StatelessWidget {
               children: [
                 for (var i = 1; i <= 2; i++)
                   AnimatedContainer(
-                    duration: const Duration(milliseconds: 250),
+                    duration: const Duration(milliseconds: 150),
                     curve: Curves.easeOut,
                     width: i <= step ? 26 : 10,
                     height: 6,
@@ -206,7 +357,7 @@ class _SetupDialog<T> extends StatelessWidget {
             ),
             const SizedBox(height: 20),
             AnimatedSize(
-              duration: const Duration(milliseconds: 250),
+              duration: const Duration(milliseconds: 120),
               curve: Curves.easeOut,
               child: _StepBody<T>(
                 bodyBuilder: bodyBuilder,
@@ -244,7 +395,7 @@ class _StepBody<T> extends StatelessWidget {
       mainAxisSize: MainAxisSize.min,
       children: [
         AnimatedSwitcher(
-          duration: const Duration(milliseconds: 200),
+          duration: const Duration(milliseconds: 120),
           child: error != null
               ? Padding(
                   key: const ValueKey('err'),
@@ -366,22 +517,53 @@ Future<bool> promptLockVerification(
   LockSettings lock,
 ) async {
   if (lock.method == LockMethod.biometric) {
-    return ref.read(biometricServiceProvider).authenticate(
+    final result = await ref.read(biometricServiceProvider).authenticate(
           localizedReason: context.l10n.verifyBiometric,
         );
+    return result == BiometricAuthResult.success;
   }
 
   final ok = await showDialog<bool>(
     context: context,
-    builder: (context) => Dialog(
+    builder: (context) => _VerificationDialog(lock: lock),
+  );
+  return ok ?? false;
+}
+
+/// Dialog de vérification du code actuel. La dérivation PBKDF2 est longue
+/// (surtout sur les appareils modestes) : un indicateur de chargement est
+/// affiché pendant la vérification pour que l'utilisateur ne croie pas que
+/// l'app est bloquée.
+class _VerificationDialog extends StatefulWidget {
+  const _VerificationDialog({required this.lock});
+
+  final LockSettings lock;
+
+  @override
+  State<_VerificationDialog> createState() => _VerificationDialogState();
+}
+
+class _VerificationDialogState extends State<_VerificationDialog> {
+  bool _verifying = false;
+
+  /// Déclenche [verify] et ferme le dialog avec le résultat, en affichant
+  /// un indicateur de chargement pendant la dérivation.
+  Future<void> _submit(Future<bool> Function() verify) async {
+    setState(() => _verifying = true);
+    final ok = await verify();
+    if (mounted) Navigator.of(context).pop(ok);
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final lock = widget.lock;
+    return Dialog(
       insetPadding: const EdgeInsets.symmetric(horizontal: 28, vertical: 24),
       child: Container(
         width: 340,
         padding: const EdgeInsets.fromLTRB(20, 22, 20, 16),
         decoration: BoxDecoration(
-          color: Theme.of(context).brightness == Brightness.dark
-              ? const Color(0xFF1D202C)
-              : Colors.white,
+          color: Theme.of(context).colorScheme.surface,
           borderRadius: BorderRadius.circular(28),
         ),
         child: Column(
@@ -402,32 +584,55 @@ Future<bool> promptLockVerification(
               ),
             ),
             const SizedBox(height: 20),
-            switch (lock.method) {
-              LockMethod.pin => PinPad(
-                  onCompleted: (pin) {
-                    Navigator.of(context).pop(lock.verifyPin(pin));
-                  },
+            if (_verifying)
+              Padding(
+                padding: const EdgeInsets.symmetric(vertical: 24),
+                child: Column(
+                  children: [
+                    CircularProgressIndicator(
+                      color: Theme.of(context).colorScheme.primary,
+                    ),
+                    const SizedBox(height: 12),
+                    Text(
+                      context.l10n.verifying,
+                      style: AppTypography.captionMd.copyWith(
+                        color: Theme.of(context).colorScheme.outline,
+                      ),
+                    ),
+                  ],
                 ),
-              LockMethod.password => _PasswordBox(
-                  onSubmit: (pw) =>
-                      Navigator.of(context).pop(lock.verifyPassword(pw)),
-                ),
-              LockMethod.pattern => SizedBox(
-                  width: 220,
-                  height: 220,
-                  child: PatternLock(
-                    onCompleted: (p) {
-                      if (p.length >= 4) {
-                        Navigator.of(context).pop(lock.verifyPattern(p));
-                      }
-                    },
+              )
+            else
+              switch (lock.method) {
+                LockMethod.pin => PinPad(
+                    onCompleted: (pin) => _submit(() => lock.verifyPin(pin)),
+                    semantics: PinPadSemantics(
+                      delete: context.l10n.delete,
+                      error: context.l10n.wrongPin,
+                    ),
                   ),
-                ),
-              LockMethod.biometric => const SizedBox.shrink(),
-            },
+                LockMethod.password => _PasswordBox(
+                    onSubmit: (pw) => _submit(() => lock.verifyPassword(pw)),
+                  ),
+                LockMethod.pattern => SizedBox(
+                    width: 220,
+                    height: 220,
+                    child: PatternLock(
+                      onCompleted: (p) {
+                        if (p.length >= 4) {
+                          _submit(() => lock.verifyPattern(p));
+                        }
+                      },
+                      semanticHint: context.l10n.patternHint,
+                    ),
+                  ),
+                LockMethod.biometric => const SizedBox.shrink(),
+              },
             const SizedBox(height: 16),
             TextButton.icon(
-              onPressed: () => Navigator.of(context).pop(false),
+              onPressed: _verifying
+                  ? null
+                  : () => Navigator.of(context).pop(false),
               icon: const Icon(Icons.close, size: 18),
               label: Text(context.l10n.cancel),
               style: TextButton.styleFrom(
@@ -438,7 +643,6 @@ Future<bool> promptLockVerification(
           ],
         ),
       ),
-    ),
-  );
-  return ok ?? false;
+    );
+  }
 }
