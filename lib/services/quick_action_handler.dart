@@ -74,11 +74,24 @@ abstract final class QuickActionHandler {
         );
         final strings = appStringsFor(payload.locale);
 
+        // Alarme exacte si l'OS l'autorise encore depuis cet isolate
+        // (Android 12+ : la permission SCHEDULE_EXACT_ALARM peut être
+        // révocable). Un report d'alarme inexact peut sonner avec 15 min
+        // de retard en Doze — on tente donc l'exact d'abord.
+        var exact = true;
+        try {
+          final androidImpl =
+              plugin.resolvePlatformSpecificImplementation<
+                  AndroidFlutterLocalNotificationsPlugin>();
+          exact =
+              await androidImpl?.canScheduleExactNotifications() ?? false;
+        } catch (_) {}
+
         final scheduled = await NotificationService.scheduleDefer(
           plugin: plugin,
           payload: deferPayload,
           fireAt: plan.fireAt,
-          exact: false,
+          exact: exact,
           strings: strings,
         );
 

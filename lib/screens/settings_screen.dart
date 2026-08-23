@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../app_info.dart';
 import '../providers/providers.dart';
+import '../theme/app_theme.dart';
 import '../theme/app_typography.dart';
 import '../theme/dimens.dart';
 import 'settings_pages.dart';
@@ -40,6 +41,9 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
     final settings = ref.watch(settingsProvider);
     final lock = ref.watch(lockSettingsProvider);
     final scheme = Theme.of(context).colorScheme;
+    final fontLabel = settings.fontFamily == 'System'
+        ? s.fontSystem
+        : AppTheme.fontDisplayName(settings.fontFamily);
 
     return Scaffold(
       appBar: AppBar(
@@ -53,7 +57,12 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
             icon: Icons.palette_outlined,
             iconColor: Colors.deepPurple,
             title: s.appearanceSettings,
-            subtitle: '${s.theme}: ${settings.themeMode.name} • ${settings.fontFamily}',
+            subtitle:
+                '${s.theme}: ${switch (settings.themeMode) {
+                  ThemeMode.light => s.themeLight,
+                  ThemeMode.dark => s.themeDark,
+                  ThemeMode.system => s.themeSystem,
+                }} • $fontLabel',
             onTap: () => Navigator.push(
               context,
               MaterialPageRoute(builder: (_) => const AppearanceSettingsPage()),

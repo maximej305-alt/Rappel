@@ -125,9 +125,14 @@ abstract final class StatsCalculator {
     }
 
     final completedSets = [for (final a in activities) a.completedDays.toSet()];
-    final minDate = activities
+    var minDate = activities
         .map((a) => DateTime(a.date.year, a.date.month, a.date.day))
         .reduce((x, y) => x.isBefore(y) ? x : y);
+    // Garde-fou : une date aberrante (corruption, import) genre 1970 ferait
+    // boucler ~20 000 jours sur le thread UI. L'historique exploitable est
+    // borné à 2 ans — au-delà, les stats sont identiques.
+    final minAllowed = DateTime(t.year, t.month, t.day - 730);
+    if (minDate.isBefore(minAllowed)) minDate = minAllowed;
 
     final weekStart = _isoWeekStart(t);
     final monthStart = DateTime(t.year, t.month, 1);

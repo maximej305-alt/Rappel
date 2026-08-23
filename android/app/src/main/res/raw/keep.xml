@@ -7,4 +7,4 @@
   ce qui empêche toute planification d'alarme.
 -->
 <resources xmlns:tools="http://schemas.android.com/tools"
-    tools:keep="@drawable/ic_notification,@drawable/ic_action_done,@drawable/ic_action_snooze,@drawable/ic_action_tomorrow,@raw/chime1,@raw/chime2,@raw/beep,@raw/bell,@raw/whistle" />
+    tools:keep="@drawable/ic_notification,@drawable/ic_action_done,@drawable/ic_action_snooze,@drawable/ic_action_tomorrow,@drawable/ic_launcher,@raw/chime1,@raw/chime2,@raw/beep,@raw/bell,@raw/whistle" />

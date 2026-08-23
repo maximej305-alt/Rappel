@@ -150,8 +150,9 @@ class _SoundPickerSheetState extends State<_SoundPickerSheet>
         _importing = false;
         _endPlaying();
       });
+      debugPrint('[SoundPicker] échec import : $e');
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(e.toString())),
+        SnackBar(content: Text(context.l10n.soundImportError)),
       );
     }
   }

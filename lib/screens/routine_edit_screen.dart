@@ -43,6 +43,7 @@ class _RoutineEditScreenState extends ConsumerState<RoutineEditScreen> {
   final _nameController = TextEditingController();
   final _descriptionController = TextEditingController();
   final _formKey = GlobalKey<FormState>();
+  bool _saving = false;
 
   late String _icon;
   late List<_ActivityDraft> _rows;
@@ -199,6 +200,18 @@ class _RoutineEditScreenState extends ConsumerState<RoutineEditScreen> {
   }
 
   Future<void> _save() async {
+    // Anti double-tap : une seule soumission à la fois (la sauvegarde
+    // contient de longs awaits — planification N notifications + Hive).
+    if (_saving) return;
+    setState(() => _saving = true);
+    try {
+      await _doSave();
+    } finally {
+      if (mounted) setState(() => _saving = false);
+    }
+  }
+
+  Future<void> _doSave() async {
     if (!_formKey.currentState!.validate()) return;
     if (_rows.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
@@ -247,7 +260,8 @@ class _RoutineEditScreenState extends ConsumerState<RoutineEditScreen> {
             alarmMode: ref.read(settingsProvider).alarmMode);
         scheduled.add(a);
       }
-    } catch (_) {
+    } catch (e, st) {
+      debugPrint('[RoutineEdit] échec planification : $e\n$st');
       for (final a in scheduled) {
         await notifications.cancelActivity(a);
       }
@@ -260,9 +274,12 @@ class _RoutineEditScreenState extends ConsumerState<RoutineEditScreen> {
     }
 
     // 3. Persister (rollback des notifications si l'écriture échoue).
+    var persisted = false;
     try {
       if (newActivities.isNotEmpty) {
         await activitiesNotifier.addAll(newActivities);
+        // Réussi : le rollback ne retirera que ces activités-là.
+        persisted = true;
       }
 
       final aliveIds = {for (final a in current) a.id};
@@ -281,7 +298,16 @@ class _RoutineEditScreenState extends ConsumerState<RoutineEditScreen> {
       final name = _nameController.text.trim();
       final description = _descriptionController.text.trim();
       if (_isEditing) {
-        final updated = widget.routine!.copyWith(
+        // Source de vérité à jour : l'objet `widget.routine` peut être
+        // périmé (activé/désactivé ou modifié ailleurs pendant que cet
+        // écran était ouvert). On ne sauvegarde jamais un objet vieux de
+        // plusieurs minutes — seuls les champs édités sont réécrits.
+        final fresh = ref
+                .read(routinesProvider)
+                .where((r) => r.id == widget.routine!.id)
+                .firstOrNull ??
+            widget.routine!;
+        final updated = fresh.copyWith(
           name: name,
           icon: _icon,
           description: description.isEmpty ? null : description,
@@ -297,12 +323,17 @@ class _RoutineEditScreenState extends ConsumerState<RoutineEditScreen> {
         );
         await routinesNotifier.create(routine);
       }
-    } catch (_) {
+    } catch (e, st) {
+      debugPrint('[RoutineEdit] échec persistance : $e\n$st');
       for (final a in scheduled) {
         await notifications.cancelActivity(a);
       }
-      for (final a in newActivities) {
-        await activitiesNotifier.remove(a.id); // rollback si ajout partiel
+      // Rollback : uniquement les activités réellement persistées — retirer
+      // des activités jamais insérées masquerait l'erreur réelle.
+      if (persisted) {
+        for (final a in newActivities) {
+          await activitiesNotifier.remove(a.id);
+        }
       }
       if (mounted) {
         messenger.showSnackBar(
@@ -407,7 +438,7 @@ class _RoutineEditScreenState extends ConsumerState<RoutineEditScreen> {
             ),
             const SizedBox(height: 24),
             FilledButton.icon(
-              onPressed: _save,
+              onPressed: _saving ? null : _save,
               icon: const Icon(Icons.check),
               label: Text(_isEditing ? s.saveChanges : s.createRoutine),
             ),
@@ -665,12 +696,12 @@ class _ActivityRow extends StatelessWidget {
               ),
               _TinyButton(
                 icon: Icons.keyboard_arrow_up,
-                tooltip: 'Up',
+                tooltip: context.l10n.moveUp,
                 onPressed: canMoveUp ? onMoveUp : null,
               ),
               _TinyButton(
                 icon: Icons.keyboard_arrow_down,
-                tooltip: 'Down',
+                tooltip: context.l10n.moveDown,
                 onPressed: canMoveDown ? onMoveDown : null,
               ),
               _TinyButton(

@@ -86,14 +86,17 @@ class _RappelPlusAppState extends ConsumerState<RappelPlusApp>
       // Attendre la fin du chargement Hive avant de replanifier : sans quoi on
       // relit la liste vide initiale et aucun rappel n'est programmé.
       await ref.read(activitiesProvider.notifier).ready;
-      final activities = ref.read(activitiesProvider);
-      await notifications.rescheduleAll(
-        activities,
+      // Replanification + persistance des IDs réalloués (collisions).
+      await rescheduleAllPersisted(
+        ref,
         reminderOffsetMinutes: settings.reminderOffsetMinutes,
         s: appStringsFor(settings.locale),
         alarmMode: settings.alarmMode,
       );
-      debugPrint('[Rappel] secondaryInit OK, activities=${activities.length}');
+      debugPrint(
+        '[Rappel] secondaryInit OK, '
+        'activities=${ref.read(activitiesProvider).length}',
+      );
     } catch (e, st) {
       debugPrint('[Rappel] secondaryInit FAILED: $e\n$st');
     }
@@ -101,6 +104,13 @@ class _RappelPlusAppState extends ConsumerState<RappelPlusApp>
 
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
+    // Passage en arrière-plan : flush immédiat de toute écriture d'activités
+    // en attente (debounce) — un cochage confirmé n'est jamais perdu même si
+    // l'OS tue le processus ensuite.
+    if (state == AppLifecycleState.paused ||
+        state == AppLifecycleState.detached) {
+      ref.read(activitiesProvider.notifier).flushPendingWrite();
+    }
     // Libère le lecteur d'aperçu quand l'app est détachée (fin de vie).
     if (state == AppLifecycleState.detached) {
       SoundPreviewService.instance.dispose();

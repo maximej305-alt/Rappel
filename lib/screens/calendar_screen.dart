@@ -64,7 +64,19 @@ class _CalendarScreenState extends ConsumerState<CalendarScreen> {
                   },
                   onPageChanged: (focused) =>
                       setState(() => _focusedDay = focused),
-                  locale: locale.startsWith('fr') ? 'fr_FR' : 'en_US',
+                  // Symbole ICU par langue (l'app en supporte 8) : sans ce
+                  // mapping, les en-têtes du calendrier restaient en anglais
+                  // pour es/de/it/pt/zh/ar.
+                  locale: switch (locale.split('_').first) {
+                    'fr' => 'fr_FR',
+                    'es' => 'es_ES',
+                    'de' => 'de_DE',
+                    'it' => 'it_IT',
+                    'pt' => 'pt_BR',
+                    'zh' => 'zh_CN',
+                    'ar' => 'ar',
+                    _ => 'en_US',
+                  },
                   startingDayOfWeek: StartingDayOfWeek.monday,
                   calendarFormat: CalendarFormat.month,
                   eventLoader: (day) => events[day] ?? const [],

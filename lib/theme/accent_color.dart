@@ -36,4 +36,7 @@ enum AccentColor {
   /// Couleur effective selon la luminosité.
   Color forBrightness(Brightness brightness) =>
       brightness == Brightness.dark ? dark : light;
+
+  /// Libellé humanisé (nom propre) au lieu de l'enum brut `indigo`.
+  String get displayName => name[0].toUpperCase() + name.substring(1);
 }

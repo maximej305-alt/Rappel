@@ -11,6 +11,7 @@ import 'package:timezone/timezone.dart' as tz;
 import '../l10n/app_strings.dart';
 import '../models/activity.dart';
 import '../models/notification_payload.dart';
+import '../theme/app_colors.dart';
 import '../models/snooze_action.dart';
 import 'custom_sound_service.dart';
 import 'quick_action_journal.dart';
@@ -371,12 +372,18 @@ class NotificationService {
       title: strings.appName,
       body: body,
       scheduledDate: fire,
-      notificationDetails: detailsFor(activity.sound, strings, alarmMode),
+      notificationDetails: detailsFor(activity.sound, strings, alarmMode, body),
       androidScheduleMode: _canScheduleExact
           ? AndroidScheduleMode.exactAllowWhileIdle
           : AndroidScheduleMode.inexactAllowWhileIdle,
       matchDateTimeComponents: null, // ponctuel : le jour varie chaque mois
-      payload: _buildPayload(activity, id, fire, alarmMode: alarmMode),
+      payload: _buildPayload(
+        activity,
+        id,
+        fire,
+        offsetMinutes,
+        alarmMode: alarmMode,
+      ),
     );
   }
 
@@ -410,12 +417,18 @@ class NotificationService {
       title: strings.appName,
       body: body,
       scheduledDate: fire,
-      notificationDetails: detailsFor(activity.sound, strings, alarmMode),
+      notificationDetails: detailsFor(activity.sound, strings, alarmMode, body),
       androidScheduleMode: _canScheduleExact
           ? AndroidScheduleMode.exactAllowWhileIdle
           : AndroidScheduleMode.inexactAllowWhileIdle,
       matchDateTimeComponents: components,
-      payload: _buildPayload(activity, id, fire, alarmMode: alarmMode),
+      payload: _buildPayload(
+        activity,
+        id,
+        fire,
+        offsetMinutes,
+        alarmMode: alarmMode,
+      ),
     );
   }
 
@@ -423,11 +436,22 @@ class NotificationService {
   /// sert pour reconstruire l'activité et connaître l'occurrence touchée.
   /// Le mode alarme est embarqué pour que les reports (snoozes) respectent
   /// le réglage de l'utilisateur au lieu de repartir en alarme par défaut.
-  String _buildPayload(Activity activity, int id, tz.TZDateTime fire,
-      {bool alarmMode = false}) {
+  ///
+  /// [offsetMinutes] est l'anticipation du rappel : l'occurrence RÉELLE vaut
+  /// `fire + offset`. Sans cela, un rappel « 15 min avant » une occurrence à
+  /// 00:05 tire à 23:50 la veille et « Terminé » marquerait le mauvais jour.
+  String _buildPayload(
+    Activity activity,
+    int id,
+    tz.TZDateTime fire,
+    int offsetMinutes, {
+    bool alarmMode = false,
+  }) {
+    final occurrenceDay =
+        fire.toLocal().add(Duration(minutes: offsetMinutes));
     return NotificationPayload.fromActivity(
       activity,
-      occurrence: Activity.dateKey(fire.toLocal()),
+      occurrence: Activity.dateKey(occurrenceDay),
       notificationId: id,
       journalDir: journalDir,
       timezone: localTimeZoneName(),
@@ -445,6 +469,7 @@ class NotificationService {
     String soundId, [
     AppStrings? s,
     bool alarmMode = true,
+    String? body,
   ]) {
     final strings = s ?? AppStrings.fr;
     final id = CustomSoundService.fallbackSoundId(soundId);
@@ -454,11 +479,21 @@ class NotificationService {
       strings,
       isAlarm: isAlarm,
     );
+
+    // Design : sobre et élégant — logo rond à droite, texte complet,
+    // teinte discrète aux couleurs de l'app. Pas d'effets lourds :
+    // les fondus/extras rendent mal selon les surcouches Android.
+    final StyleInformation? style =
+        body == null ? null : BigTextStyleInformation(body);
+
     return NotificationDetails(
       android: AndroidNotificationDetails(
         channelId,
         channelName,
         channelDescription: strings.notifChannelDesc,
+        largeIcon: const DrawableResourceAndroidBitmap('ic_launcher'),
+        color: AppColors.primary,
+        styleInformation: style,
         importance: isAlarm ? Importance.max : Importance.high,
         priority: isAlarm ? Priority.max : Priority.high,
         channelBypassDnd: isAlarm,
@@ -581,6 +616,27 @@ class NotificationService {
     bool alarmMode = true,
   }) async {
     if (!_initialized || !activity.enabled) return;
+    // Reports en vol (snooze) de CETTE occurrence : l'alarme reportée ne
+    // doit plus sonner une fois l'occurrence marquée « terminée ».
+    final occurrenceKey = Activity.dateKey(day);
+    final journal = await _loadJournal();
+    final stale = journal.snoozes
+        .where((e) => e.activityId == activity.id && e.occurrence == occurrenceKey)
+        .toList();
+    if (stale.isNotEmpty) {
+      for (final e in stale) {
+        await _plugin.cancel(
+          id: QuickActionJournal.deferIdFor(e.activityId, e.occurrence),
+        );
+      }
+      await QuickActionJournalStore.save(
+        journalDir,
+        QuickActionJournal(
+          pending: journal.pending,
+          snoozes: journal.snoozes.where((e) => !stale.contains(e)).toList(),
+        ),
+      );
+    }
     switch (activity.repeat) {
       case RepeatRule.weekly:
         await _plugin.cancel(id: activity.notificationId * 8 + day.weekday);
@@ -616,6 +672,21 @@ class NotificationService {
     bool alarmMode = true,
   }) async {
     if (!_initialized || !activity.enabled) return;
+    // Mensuel : PAS de récurrence native `dayOfMonthAndTime` sous l'ID de
+    // base — cet ID n'appartient pas aux slots annulables (`idsFor`) et
+    // Android épinglerait la récurrence au premier jour sonné (dérive
+    // 31 → 28 + alarme fantôme survivant à la suppression). On replanifie
+    // l'horizon ponctuel depuis le jour réactivé, comme partout ailleurs.
+    if (activity.repeat == RepeatRule.monthly) {
+      await _rearmMonthlyFrom(
+        activity,
+        DateTime(day.year, day.month, day.day),
+        reminderOffsetMinutes: reminderOffsetMinutes,
+        s: s,
+        alarmMode: alarmMode,
+      );
+      return;
+    }
     final weekly = activity.repeat == RepeatRule.weekly;
     await _scheduleOne(
       activity,
@@ -695,13 +766,18 @@ class NotificationService {
   /// déjà enregistrées : seules les activités en collision reçoivent un
   /// identifiant frais. Les reports en vol du journal sont purgés (échus)
   /// puis replanifiés.
-  Future<void> rescheduleAll(
+  ///
+  /// Retourne la liste éventuellement CORRIGÉE (identifiants réalloués) :
+  /// l'appelant DOIT la persister, sinon les futurs `cancelActivity`
+  /// annuleraient les anciens IDs et laisseraient sonner des alarmes
+  /// orphelines sous les nouveaux.
+  Future<List<Activity>> rescheduleAll(
     List<Activity> activities, {
     int reminderOffsetMinutes = 0,
     AppStrings? s,
     bool alarmMode = true,
   }) async {
-    if (!_initialized) return;
+    if (!_initialized) return activities;
     // Langue portée par l'instance passée (repli : celle déjà en mémoire).
     _locale = (s != null && s.code.isNotEmpty) ? s.code : _locale;
     await _plugin.cancelAll();
@@ -730,6 +806,7 @@ class NotificationService {
     }
 
     await _rearmDeferred(journal, scheduled, s, alarmMode);
+    return scheduled;
   }
 
   /// Replanifie les reports en vol du journal (un `cancelAll` les a annulés).
@@ -775,7 +852,9 @@ class NotificationService {
         title: strings.appName,
         body: deferBody(strings, payload.name, fireAt),
         scheduledDate: tz.TZDateTime.from(fireAt, tz.local),
-        notificationDetails: detailsFor(payload.sound, strings, payload.alarmMode),
+        notificationDetails:
+            detailsFor(payload.sound, strings, payload.alarmMode,
+                deferBody(strings, payload.name, fireAt)),
         androidScheduleMode: _canScheduleExact
             ? AndroidScheduleMode.exactAllowWhileIdle
             : AndroidScheduleMode.inexactAllowWhileIdle,
@@ -806,6 +885,7 @@ class NotificationService {
           payload.sound,
           strings,
           payload.alarmMode,
+          deferBody(strings, payload.name, fireAt),
         ),
         androidScheduleMode: exact
             ? AndroidScheduleMode.exactAllowWhileIdle

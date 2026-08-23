@@ -2,6 +2,7 @@ import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
 
+import 'package:flutter/foundation.dart' show debugPrint;
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:hive_flutter/hive_flutter.dart';
 import 'package:path_provider/path_provider.dart';
@@ -33,6 +34,21 @@ class StorageService {
       const FlutterSecureStorage();
 
   Box? _box;
+
+  /// Boîte obligatoire pour toute ÉCRITURE : si Hive n'a pas pu être ouvert,
+  /// sauvegarder en silence reviendrait à perdre les données de la session
+  /// sans prévenir. On journalise et on lève — l'échec doit être visible.
+  Box get _db {
+    final b = _box;
+    if (b == null) {
+      debugPrint('[Storage] ERREUR : boîte Hive indisponible, écriture refusée');
+      throw StateError('StorageService.init() non terminé');
+    }
+    return b;
+  }
+
+  /// Vrai dès que le coffre est ouvert.
+  bool get isReady => _box != null;
 
   /// Initialise Hive avec une boîte chiffrée (AES-256).
   /// La clé est générée une seule fois puis conservée de façon sécurisée
@@ -252,7 +268,7 @@ class StorageService {
   }
 
   Future<void> saveActivities(List<Activity> activities) async {
-    await _box?.put(
+    await _db.put(
       _activitiesKey,
       activities.map((a) => a.toMap()).toList(),
     );
@@ -274,7 +290,7 @@ class StorageService {
   }
 
   Future<void> saveRoutines(List<Routine> routines) async {
-    await _box?.put(
+    await _db.put(
       _routinesKey,
       routines.map((r) => r.toMap()).toList(),
     );
@@ -297,7 +313,7 @@ class StorageService {
   }
 
   Future<void> saveCategories(List<Category> categories) async {
-    await _box?.put(
+    await _db.put(
       _categoriesKey,
       categories.map((c) => c.toMap()).toList(),
     );
@@ -316,7 +332,7 @@ class StorageService {
   }
 
   Future<void> saveSettings(AppSettings settings) async {
-    await _box?.put(_settingsKey, settings.toMap());
+    await _db.put(_settingsKey, settings.toMap());
   }
 
   LockSettings loadLockSettings() {
@@ -332,6 +348,6 @@ class StorageService {
   }
 
   Future<void> saveLockSettings(LockSettings lock) async {
-    await _box?.put(_lockKey, lock.toMap());
+    await _db.put(_lockKey, lock.toMap());
   }
 }

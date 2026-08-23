@@ -160,13 +160,40 @@ class LockSettings {
         'rappel:pattern:',
       );
     }
-    // Ancien format : comparaison directe avec le motif stocké en clair.
+// Ancien format : comparaison directe avec le motif stocké en clair.
+    // Transitoire : la migration au chargement ([migrateLegacySecrets])
+    // transforme ce motif en hash et le retire du stockage ; cette branche
+    // ne sert que si une écriture de migration n'a pas encore eu lieu.
     final legacy = legacyPattern;
     if (legacy == null || legacy.length != entered.length) return false;
     for (var i = 0; i < legacy.length; i++) {
       if (legacy[i] != entered[i]) return false;
     }
     return true;
+  }
+
+  /// Migre les secrets hérités vers des formats sûrs :
+  /// - motif en clair (`legacyPattern`) → hash PBKDF2 (`patternHash`) ;
+  /// Retourne `(settings migrés, changement effectif)`. Appelé au chargement
+  /// par [LockNotifier] qui persiste immédiatement le résultat : aucun
+  /// secret en clair ne survit à la première session.
+  Future<(LockSettings, bool)> migrateLegacySecrets() async {
+    final legacy = legacyPattern;
+    if (legacy == null || legacy.isEmpty) return (this, false);
+    final hashed = await _saltedHash(_patternKey(legacy));
+    return (
+      LockSettings(
+        enabled: enabled,
+        method: method,
+        pinHash: pinHash,
+        passwordHash: passwordHash,
+        patternHash: hashed,
+        fallbackMethod: fallbackMethod,
+        useBiometric: useBiometric,
+        useDeviceFingerprint: useDeviceFingerprint,
+      ),
+      true,
+    );
   }
 
   /// Réécrit le verrou avec un nouveau secret (les autres restent).
@@ -242,9 +269,8 @@ class LockSettings {
         'fallbackMethod': fallbackMethod?.name,
         'useBiometric': useBiometric,
         'useDeviceFingerprint': useDeviceFingerprint,
-        // Conserve le motif hérité tant qu'il n'a pas été reconfiguré
-        // (section migration) ; supprimé dès qu'un nouveau secret est posé.
-        if (patternHash == null && legacyPattern != null)
-          'pattern': legacyPattern,
+        // AUCUN secret en clair n'est jamais écrit : le motif hérité
+        // (`legacyPattern`) est migré vers un hash au chargement puis
+        // disparaît du stockage dès la première écriture.
       };
 }

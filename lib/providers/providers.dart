@@ -48,11 +48,23 @@ class TodayNotifier extends StateNotifier<String> {
       state = _clock.todayKey();
       _schedule();
     });
+    // Filet de sécurité : si l'horloge système change (NTP, voyage, réglage
+    // manuel), le timer vers « l'ancien » prochain minuit peut tarder des
+    // heures. Une vérification chaque minute rattrape tout décalage à un
+    // coût négligeable (comparaison de deux chaînes).
+    _driftCheck?.cancel();
+    _driftCheck = Timer.periodic(const Duration(minutes: 1), (_) {
+      final key = _clock.todayKey();
+      if (key != state) state = key;
+    });
   }
+
+  Timer? _driftCheck;
 
   @override
   void dispose() {
     _timer?.cancel();
+    _driftCheck?.cancel();
     super.dispose();
   }
 }
@@ -90,11 +102,31 @@ class ActivitiesNotifier extends StateNotifier<List<Activity>> {
 
   /// Reporte plusieurs suppressions en une seule écriture Hive (suppression
   /// de routine) : un `setState` + un `put` au lieu d'un par activité.
+  /// Purge aussi les références mortes dans les routines.
   Future<void> removeMany(List<String> ids) async {
     if (ids.isEmpty) return;
     final remove = ids.toSet();
     state = state.where((a) => !remove.contains(a.id)).toList();
     await _storage.saveActivities(state);
+    await _purgeRoutineReferences(remove);
+  }
+
+  /// Retire de toutes les routines les IDs d'activités supprimées.
+  Future<void> _purgeRoutineReferences(Set<String> ids) async {
+    final routines = _storage.loadRoutines();
+    var changed = false;
+    final cleaned = <Routine>[];
+    for (final r in routines) {
+      final filtered =
+          r.activityIds.where((x) => !ids.contains(x)).toList();
+      if (filtered.length != r.activityIds.length) {
+        changed = true;
+        cleaned.add(r.copyWith(activityIds: filtered));
+      } else {
+        cleaned.add(r);
+      }
+    }
+    if (changed) await _storage.saveRoutines(cleaned);
   }
 
   Future<void> add(Activity activity) async {
@@ -113,6 +145,9 @@ class ActivitiesNotifier extends StateNotifier<List<Activity>> {
   Future<void> remove(String id) async {
     state = state.where((a) => a.id != id).toList();
     await _storage.saveActivities(state);
+    // Purge des références mortes : une routine gardant l'ID d'une activité
+    // supprimée grossit silencieusement et peut sembler non vide.
+    await _purgeRoutineReferences({id});
   }
 
   Future<void> update(Activity activity) async {
@@ -154,9 +189,27 @@ class ActivitiesNotifier extends StateNotifier<List<Activity>> {
     });
   }
 
+  /// Écrit immédiatement l'état en attente (s'il y en a un) puis annule le
+  /// debounce. Appelé à la destruction du notifier et quand l'app passe en
+  /// arrière-plan : UN COCHAGE CONFIRMÉ N'EST JAMAIS PERDU, même si l'app
+  /// est tuée juste après l'action.
+  Future<void> flushPendingWrite() async {
+    if (_activitiesWriteTimer == null) return;
+    _activitiesWriteTimer?.cancel();
+    _activitiesWriteTimer = null;
+    await _storage.saveActivities(state);
+  }
+
   @override
   void dispose() {
-    _activitiesWriteTimer?.cancel();
+    // Flush synchronique : on ne peut pas await dans dispose(), mais Hive
+    // `put` écrit d'abord en mémoire avant le flush disque — l'état est
+    // donc conservé même si le processus meurt peu après.
+    if (_activitiesWriteTimer != null) {
+      _activitiesWriteTimer!.cancel();
+      _activitiesWriteTimer = null;
+      _storage.saveActivities(state);
+    }
     super.dispose();
   }
 }
@@ -203,6 +256,10 @@ final dayActivitiesProvider = Provider.family<List<Activity>, String>((
 /// recalculés uniquement quand la liste globale change OU quand le mois
 /// affiché change — jamais à chaque rebuild de l'écran (changement de jour,
 /// changement de page, etc.). Seule contrainte : la clé est le 1er du mois.
+///
+/// Les clés sont des `DateTime.utc` à minuit : TableCalendar transmet ses
+/// jours au `eventLoader` en UTC ; comparer avec des DateTime locaux ferait
+/// rater les clés dans tout fuseau décalé (marqueurs invisibles).
 final monthEventsProvider =
     Provider.family<Map<DateTime, List<Activity>>, DateTime>((ref, month) {
       final activities = ref.watch(activitiesProvider);
@@ -218,7 +275,10 @@ final monthEventsProvider =
         var cursor = start;
         while (!cursor.isAfter(end)) {
           if (a.isDueOn(cursor)) {
-            events.putIfAbsent(cursor, () => []).add(a);
+            events
+                .putIfAbsent(DateTime.utc(cursor.year, cursor.month, cursor.day),
+                    () => [])
+                .add(a);
           }
           cursor = DateTime(cursor.year, cursor.month, cursor.day + 1);
         }
@@ -227,8 +287,8 @@ final monthEventsProvider =
     });
 
 /// Notifier des catégories. La catégorie de repli « Autre » est protégée :
-/// [delete] ne l'écrase jamais (les activités la référençant doivent être
-/// réassignées par l'appelant avant suppression).
+/// [delete] ne l'écrase jamais. Pour une suppression complète, utiliser
+/// [deleteCategoryAndReassign] qui réassigne les activités concernées.
 class CategoriesNotifier extends StateNotifier<List<Category>> {
   CategoriesNotifier(this._storage) : super(const []);
 
@@ -377,7 +437,33 @@ class LockNotifier extends StateNotifier<LockSettings> {
 
   final StorageService _storage;
 
-  void load() => state = _storage.loadLockSettings();
+  /// Charge les réglages de verrou de façon SYNCHRONE (l'écran de verrouillage
+/// doit être prêt à la première frame), puis migre en tâche de fond tout
+/// secret hérité stocké en clair (motif des anciennes versions) vers un
+/// hash PBKDF2 persisté immédiatement.
+void load() {
+  final loaded = _storage.loadLockSettings();
+  state = loaded;
+  // Exposé pour les tests / appelants qui veulent attendre la fin de la
+  // migration des secrets legacy.
+  migrationDone = loaded.migrateLegacySecrets().then((migrated) async {
+    final (settings, changed) = migrated;
+    if (!changed) return;
+    // Garde anti-écrasement : ne s'applique que si le verrou n'a pas été
+    // modifié entre-temps par l'utilisateur.
+    if (!identical(state, loaded) && state != loaded) return;
+    state = settings;
+    try {
+      await _storage.saveLockSettings(settings);
+    } catch (_) {
+      // Écriture impossible : la migration retentera au prochain lancement.
+    }
+  });
+}
+
+/// Future achevé quand la migration éventuelle des secrets hérités est
+/// terminée (voir [load]).
+Future<void> migrationDone = Future.value();
 
   Future<void> update(LockSettings lock) async {
     state = lock;
@@ -480,6 +566,57 @@ class BiometricService {
   }
 }
 
+/// Supprime une catégorie en réassignant D'ABORD ses activités vers la
+/// catégorie de repli « Autre ». Aucun `categoryId` orphelin ne peut
+/// subsister, même si l'écriture des catégories échoue ensuite (les
+/// activités pointeraient alors vers « Autre », ce qui reste cohérent).
+Future<bool> deleteCategoryAndReassign(WidgetRef ref, String id) async {
+  final categories = ref.read(categoriesProvider);
+  final target = categories.where((c) => c.id == id).toList();
+  if (target.isEmpty || target.first.isFallback) return false;
+  final activities = ref.read(activitiesProvider);
+  final affected =
+      activities.any((a) => a.categoryId == id);
+  if (affected) {
+    await ref.read(activitiesProvider.notifier).updateAll([
+      for (final a in activities)
+        a.categoryId == id
+            ? a.copyWith(categoryId: CategoryPresets.otherId)
+            : a,
+    ]);
+  }
+  await ref.read(categoriesProvider.notifier).delete(id);
+  return true;
+}
+
+/// Replanifie tous les rappels et persiste les identifiants réalloués.
+///
+/// `rescheduleAll` peut réallouer des `notificationId` en collision : sans
+/// persistance de la liste corrigée, les futurs `cancelActivity` annuleraient
+/// d'anciens IDs et laisseraient sonner des alarmes orphelines.
+Future<void> rescheduleAllPersisted(
+  WidgetRef ref, {
+  required int reminderOffsetMinutes,
+  required AppStrings s,
+  required bool alarmMode,
+}) async {
+  final notifications = ref.read(notificationServiceProvider);
+  final activities = ref.read(activitiesProvider);
+  final rescheduled = await notifications.rescheduleAll(
+    activities,
+    reminderOffsetMinutes: reminderOffsetMinutes,
+    s: s,
+    alarmMode: alarmMode,
+  );
+  // L'ordre est préservé par rescheduleAll → comparaison index à index.
+  for (var i = 0; i < rescheduled.length && i < activities.length; i++) {
+    if (rescheduled[i].notificationId != activities[i].notificationId) {
+      await ref.read(activitiesProvider.notifier).updateAll(rescheduled);
+      return;
+    }
+  }
+}
+
 /// Bascule « terminé » en synchronisant l'alarme de l'occurrence : marquer
 /// terminé annule la notification du jour (sans casser la série des
 /// récurrents) ; re-cocher la réactive. Évite qu'une alarme déjà planifiée
@@ -492,8 +629,11 @@ Future<void> toggleCompletedWithAlarm(
   final nowDone = !activity.isCompletedOn(day);
   await ref.read(activitiesProvider.notifier).toggleCompleted(activity.id, day);
   final notifications = ref.read(notificationServiceProvider);
+  // Les réglages utilisateur (offset « X min avant », mode alarme, langue)
+  // sont transmis aux DEUX chemins : sans cela, le réarmement après
+  // annulation repartait avec un offset 0 et perdrait les rappels anticipés.
+  final settings = ref.read(settingsProvider);
   if (!nowDone) {
-    final settings = ref.read(settingsProvider);
     await notifications.reactivateOccurrence(
       activity,
       day,
@@ -503,5 +643,11 @@ Future<void> toggleCompletedWithAlarm(
     );
     return;
   }
-  await notifications.cancelOccurrence(activity, day);
+  await notifications.cancelOccurrence(
+    activity,
+    day,
+    reminderOffsetMinutes: settings.reminderOffsetMinutes,
+    s: appStringsFor(settings.locale),
+    alarmMode: settings.alarmMode,
+  );
 }

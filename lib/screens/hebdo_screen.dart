@@ -24,25 +24,41 @@ class HebdoScreen extends ConsumerStatefulWidget {
 class _HebdoScreenState extends ConsumerState<HebdoScreen> {
   late DateTime _weekStart;
   late DateTime _selectedDay;
+  late String _lastTodayKey;
 
   @override
   void initState() {
     super.initState();
-    _weekStart = WeekDayStrip.startOfWeek(DateTime.now());
-    _selectedDay = DateTime.now();
+    final now = DateTime.now();
+    _weekStart = WeekDayStrip.startOfWeek(now);
+    _selectedDay = DateTime(now.year, now.month, now.day);
+    _lastTodayKey = Activity.dateKey(now);
   }
 
   void _goTo(int direction) {
     setState(() {
+      // Conserve le jour de semaine choisi par l'utilisateur au lieu de
+      // retomber systématiquement sur le lundi.
+      final weekday = _selectedDay.weekday.clamp(1, 7);
       _weekStart = direction < 0
           ? WeekDayStrip.previousWeek(_weekStart)
           : WeekDayStrip.nextWeek(_weekStart);
-      _selectedDay = _weekStart;
+      _selectedDay = _weekStart.add(Duration(days: weekday - 1));
     });
   }
 
   @override
   Widget build(BuildContext context) {
+    // Rollover minuit : l'onglet reste monté en permanence (IndexedStack
+    // paresseux) — sans cette resynchronisation, « aujourd'hui » resterait
+    // figé sur la veille après un passage de minuit, app ouverte ou non.
+    final todayKey = ref.watch(todayProvider);
+    if (todayKey != _lastTodayKey) {
+      _lastTodayKey = todayKey;
+      final today = Activity.parseDateKey(todayKey) ?? DateTime.now();
+      _weekStart = WeekDayStrip.startOfWeek(today);
+      _selectedDay = today;
+    }
     final activities = ref.watch(activitiesProvider);
     final locale = ref.watch(localeProvider);
     final s = ref.watch(stringsProvider);

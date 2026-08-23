@@ -124,8 +124,8 @@ void main() {
       expect(await lock.verifyPin('1357'), isFalse);
     });
 
-    test('legacy pattern : un motif hérité en clair reste vérifiable ET '
-        'est purgé dès qu\'un nouveau secret est posé', () async {
+    test('legacy pattern : vérifiable en mémoire, JAMAIS réécrit en clair, '
+        'migré vers un hash', () async {
       // Charge depuis un ancien stockage contenant motif en clair.
       final restored = LockSettings.fromMap({
         'enabled': true,
@@ -134,9 +134,16 @@ void main() {
       });
       expect(await restored.verifyPattern([3, 4, 1, 2, 5]), isTrue);
       expect(await restored.verifyPattern([3, 4, 1, 2, 6]), isFalse);
-      // Le legacy est re-sérialisé pour ne pas perdre l'accès.
-      expect(restored.toMap()['pattern'], [3, 4, 1, 2, 5]);
-      // Dès qu'un nouveau secret est posé, le clair disparaît.
+      // Aucune réécriture en clair : toMap ne contient jamais le motif.
+      expect(restored.toMap().containsKey('pattern'), isFalse);
+      // La migration transforme le clair en hash PBKDF2.
+      final migrated = await restored.migrateLegacySecrets();
+      expect(migrated.$2, isTrue);
+      expect(migrated.$1.patternHash, isNotNull);
+      expect(migrated.$1.legacyPattern, isNull);
+      expect(await migrated.$1.verifyPattern([3, 4, 1, 2, 5]), isTrue);
+      expect(migrated.$1.toMap().containsKey('pattern'), isFalse);
+      // Dès qu'un nouveau secret est posé, tout héritage disparaît aussi.
       final upgraded = await restored.withSecret(
         LockMethod.pattern,
         pattern: [0, 2, 4, 6],

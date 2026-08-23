@@ -136,7 +136,7 @@ class AppearanceSettingsPage extends ConsumerWidget {
             margin: const EdgeInsets.only(bottom: _m),
             child: ListTile(
               title: Text(s.accent),
-              subtitle: Text(settings.accent.name),
+              subtitle: Text(settings.accent.displayName),
               trailing: CircleAvatar(
                 radius: 12,
                 backgroundColor: settings.accent.forBrightness(
@@ -295,10 +295,8 @@ class NotificationSettingsPage extends ConsumerWidget {
               onChanged: (val) async {
                 final next = settings.copyWith(alarmMode: val);
                 await ref.read(settingsProvider.notifier).update(next);
-                final notifications = ref.read(notificationServiceProvider);
-                final activities = ref.read(activitiesProvider);
-                await notifications.rescheduleAll(
-                  activities,
+                await rescheduleAllPersisted(
+                  ref,
                   reminderOffsetMinutes: next.reminderOffsetMinutes,
                   s: s,
                   alarmMode: val,
@@ -342,9 +340,8 @@ class NotificationSettingsPage extends ConsumerWidget {
                 if (updated.isNotEmpty) {
                   await activitiesNotifier.updateAll(updated);
                 }
-                final notifications = ref.read(notificationServiceProvider);
-                await notifications.rescheduleAll(
-                  ref.read(activitiesProvider),
+                await rescheduleAllPersisted(
+                  ref,
                   reminderOffsetMinutes: next.reminderOffsetMinutes,
                   s: s,
                   alarmMode: next.alarmMode,
@@ -383,10 +380,8 @@ class NotificationSettingsPage extends ConsumerWidget {
                 if (chosen != null) {
                   final next = settings.copyWith(reminderOffsetMinutes: chosen);
                   await ref.read(settingsProvider.notifier).update(next);
-                  final notifications = ref.read(notificationServiceProvider);
-                  final activities = ref.read(activitiesProvider);
-                  await notifications.rescheduleAll(
-                    activities,
+                  await rescheduleAllPersisted(
+                    ref,
                     reminderOffsetMinutes: chosen,
                     s: s,
                     alarmMode: next.alarmMode,
@@ -438,10 +433,8 @@ class _DndTileState extends ConsumerState<_DndTile> {
     if (granted) {
       final s = ref.read(stringsProvider);
       final settings = ref.read(settingsProvider);
-      final notifications = ref.read(notificationServiceProvider);
-      final activities = ref.read(activitiesProvider);
-      await notifications.rescheduleAll(
-        activities,
+      await rescheduleAllPersisted(
+        ref,
         reminderOffsetMinutes: settings.reminderOffsetMinutes,
         s: s,
         alarmMode: settings.alarmMode,
@@ -682,10 +675,8 @@ class LanguageSettingsPage extends ConsumerWidget {
                   await initializeDateFormatting(intlLocale(code));
                   final next = settings.copyWith(locale: code);
                   await ref.read(settingsProvider.notifier).update(next);
-                  final notifications = ref.read(notificationServiceProvider);
-                  final activities = ref.read(activitiesProvider);
-                  await notifications.rescheduleAll(
-                    activities,
+                  await rescheduleAllPersisted(
+                    ref,
                     reminderOffsetMinutes: next.reminderOffsetMinutes,
                     s: appStringsFor(code),
                     alarmMode: next.alarmMode,

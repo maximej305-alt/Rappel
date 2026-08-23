@@ -91,9 +91,17 @@ class Activity {
   }
 
   /// Identifiant de notification aléatoire dans l'espace 27 bits.
+  /// Jamais 0 : 0 est la valeur de repli du désérialiseur pour les données
+  /// corrompues — deux activités à 0 s'annuleraient l'une l'autre.
   /// Voir [NotificationService.allocateFreshId] pour une allocation
   /// garantie sans collision entre activités.
-  static int newNotificationId() => _uuid.v4().hashCode & 0x07FFFFFF;
+  static int newNotificationId() {
+    var id = 0;
+    while (id == 0) {
+      id = _uuid.v4().hashCode & 0x07FFFFFF;
+    }
+    return id;
+  }
 
   bool get isCompletedToday => isCompletedOn(DateTime.now());
 
@@ -223,9 +231,14 @@ class Activity {
       priority: PriorityX.fromName(_asString(map['priority'])),
       categoryId: _asString(map['categoryId']) ?? CategoryPresets.otherId,
       completedDays: _asStringList(map['completedDays']) ?? const [],
-      notificationId: _asInt(map['notificationId']) ?? 0,
+      // Jamais 0 en repli : un ID invalide/négatif/absent reçoit un identifiant
+      // frais — deux activités à 0 s'annuleraient mutuellement leurs alarmes.
+      notificationId: _validNotificationId(_asInt(map['notificationId'])),
     );
   }
+
+  static int _validNotificationId(int? raw) =>
+      (raw != null && raw > 0) ? raw : newNotificationId();
 
   static String? _asString(Object? v) => v is String ? v : null;
 

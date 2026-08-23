@@ -7,7 +7,13 @@ import 'package:rappel_plus/providers/providers.dart';
 import 'package:rappel_plus/screens/routines_screen.dart';
 import 'package:rappel_plus/services/storage_service.dart';
 
-class _EmptyStorage extends StorageService {}
+class _EmptyStorage extends StorageService {
+  @override
+  Future<void> saveActivities(List<Activity> activities) async {}
+
+  @override
+  Future<void> saveRoutines(List<Routine> routines) async {}
+}
 
 class _FakeStorage extends StorageService {
   _FakeStorage({
@@ -18,11 +24,23 @@ class _FakeStorage extends StorageService {
   final List<Activity> activities;
   final List<Routine> routines;
 
+  List<Activity> get persistedActivities => _saved;
+
+  List<Activity> _saved = [];
+
   @override
   List<Activity> loadActivities() => activities;
 
   @override
   List<Routine> loadRoutines() => routines;
+
+  @override
+  Future<void> saveActivities(List<Activity> value) async {
+    _saved = List.of(value);
+  }
+
+  @override
+  Future<void> saveRoutines(List<Routine> value) async {}
 }
 
 Activity activity(String name) => Activity.create(
@@ -150,13 +168,17 @@ void main() {
     // Enregistre la routine. Le bouton est construit paresseusement par la
     // ListView : on défile jusqu'à le voir apparaître (le titre de l'appbar
     // porte le même texte, on scinde donc la recherche à la liste).
-    final createButton = find.descendant(
+    var createButton = find.descendant(
       of: find.byType(ListView),
       matching: find.text('Créer une routine'),
     );
-    await tester.scrollUntilVisible(createButton, 200,
-        scrollable: find.byType(Scrollable).first);
-    await tester.tap(createButton, warnIfMissed: false);
+    await tester.dragUntilVisible(
+      createButton,
+      find.byType(ListView).first,
+      const Offset(0, -200),
+    );
+    await tester.pumpAndSettle();
+    await tester.tap(createButton);
     await tester.pumpAndSettle();
 
     final routines = container.read(routinesProvider);

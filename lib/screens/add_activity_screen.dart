@@ -30,6 +30,7 @@ class AddActivityScreen extends ConsumerStatefulWidget {
 class _AddActivityScreenState extends ConsumerState<AddActivityScreen> {
   final _nameController = TextEditingController();
   final _formKey = GlobalKey<FormState>();
+  bool _saving = false;
 
   late TimeOfDay _time;
   late DateTime _date;
@@ -110,6 +111,19 @@ class _AddActivityScreenState extends ConsumerState<AddActivityScreen> {
   }
 
   Future<void> _save() async {
+    // Anti double-tap : une seule soumission à la fois. Un second tap
+    // pendant la sauvegarde (planification + écriture Hive, plusieurs
+    // awaits) ne crée JAMAIS de doublon.
+    if (_saving) return;
+    setState(() => _saving = true);
+    try {
+      await _doSave();
+    } finally {
+      if (mounted) setState(() => _saving = false);
+    }
+  }
+
+  Future<void> _doSave() async {
     if (!_formKey.currentState!.validate()) return;
 
     if (_repeat == RepeatRule.weekly && _weekdays.isEmpty) {
@@ -310,8 +324,14 @@ class _AddActivityScreenState extends ConsumerState<AddActivityScreen> {
             ),
             const SizedBox(height: 24),
             FilledButton.icon(
-              onPressed: _save,
-              icon: const Icon(Icons.check),
+              onPressed: _saving ? null : _save,
+              icon: _saving
+                  ? const SizedBox(
+                      width: 18,
+                      height: 18,
+                      child: CircularProgressIndicator(strokeWidth: 2),
+                    )
+                  : const Icon(Icons.check),
               label: Text(_isEditing ? s.saveChanges : s.save),
             ),
           ],

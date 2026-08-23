@@ -192,6 +192,10 @@ const Map<String, String> _es = {
   'noFingerprintEnrolled':
       'No hay ninguna huella registrada en este teléfono. Añade una en '
           'Ajustes de Android > Seguridad > Huella digital.',
+  'moveUp': 'Subir',
+  'moveDown': 'Bajar',
+  'soundImportError':
+      'No se pudo importar este sonido. Comprueba el formato del archivo.',
   'lockAppTitle': 'Aplicación bloqueada',
   'choosePin': 'Elige un código PIN',
   'confirmPin': 'Confirma el código PIN',
@@ -562,6 +566,10 @@ const Map<String, String> _de = {
   'noFingerprintEnrolled':
       'Auf diesem Telefon ist kein Fingerabdruck hinterlegt. Füge einen unter '
           'Android-Einstellungen > Sicherheit > Fingerabdruck hinzu.',
+  'moveUp': 'Nach oben',
+  'moveDown': 'Nach unten',
+  'soundImportError':
+      'Dieser Ton konnte nicht importiert werden. Prüfe das Dateiformat.',
   'lockAppTitle': 'App gesperrt',
   'choosePin': 'Wähle einen PIN-Code',
   'confirmPin': 'PIN-Code bestätigen',
@@ -937,6 +945,10 @@ const Map<String, String> _it = {
   'noFingerprintEnrolled':
       'Nessuna impronta registrata su questo telefono. Aggiungine una in '
           'Impostazioni Android > Sicurezza > Impronta digitale.',
+  'moveUp': 'Sposta su',
+  'moveDown': 'Sposta giù',
+  'soundImportError':
+      'Impossibile importare questo suono. Controlla il formato del file.',
   'lockAppTitle': 'App bloccata',
   'choosePin': 'Scegli un codice PIN',
   'confirmPin': 'Conferma il codice PIN',
@@ -1311,6 +1323,10 @@ const Map<String, String> _pt = {
   'noFingerprintEnrolled':
       'Nenhuma digital registrada neste telefone. Adicione uma em '
           'Configurações do Android > Segurança > Impressão digital.',
+  'moveUp': 'Mover para cima',
+  'moveDown': 'Mover para baixo',
+  'soundImportError':
+      'Não foi possível importar este som. Verifique o formato do arquivo.',
   'lockAppTitle': 'App bloqueado',
   'choosePin': 'Escolha um código PIN',
   'confirmPin': 'Confirme o código PIN',
@@ -1679,6 +1695,9 @@ const Map<String, String> _zh = {
   'useDeviceFingerprintHint': '使用已在 Android 设置中登记的指纹，无需重新录入。',
   'noFingerprintEnrolled':
       '此手机未登记任何指纹。请在 Android 设置 > 安全 > 指纹中添加。',
+  'moveUp': '上移',
+  'moveDown': '下移',
+  'soundImportError': '无法导入该声音，请检查文件格式。',
   'lockAppTitle': '应用已锁定',
   'choosePin': '选择 PIN 码',
   'confirmPin': '确认 PIN 码',
@@ -2041,6 +2060,9 @@ const Map<String, String> _ar = {
   'noFingerprintEnrolled':
       'لا توجد بصمة مسجلة على هذا الهاتف. أضف واحدة من إعدادات Android > '
           'الأمان > بصمة الإصبع.',
+  'moveUp': 'نقل لأعلى',
+  'moveDown': 'نقل لأسفل',
+  'soundImportError': 'تعذر استيراد هذا الصوت. تحقق من صيغة الملف.',
   'lockAppTitle': 'التطبيق مقفل',
   'choosePin': 'اختر رمز PIN',
   'confirmPin': 'تأكيد رمز PIN',

@@ -188,6 +188,9 @@ class AppStrings {
   String get useDeviceFingerprintTitle => _('useDeviceFingerprintTitle');
   String get useDeviceFingerprintHint => _('useDeviceFingerprintHint');
   String get noFingerprintEnrolled => _('noFingerprintEnrolled');
+  String get moveUp => _('moveUp');
+  String get moveDown => _('moveDown');
+  String get soundImportError => _('soundImportError');
 
   // ————— Réglages additionnels (nouveaux écrans) —————
   /// Alias lisibles utilisés dans les pages de réglages modernes.
@@ -605,6 +608,10 @@ class AppStrings {
     'noFingerprintEnrolled':
         'Aucune empreinte enregistrée sur ce téléphone. Ajoute-en une dans '
             'Réglages Android > Sécurité > Empreinte digitale.',
+    'moveUp': 'Monter',
+    'moveDown': 'Descendre',
+    'soundImportError':
+        'Impossible d\'importer ce son. Vérifie le format du fichier.',
 
     'lockAppTitle': 'Application verrouillée',
     'choosePin': 'Choisissez un code PIN',
@@ -987,6 +994,9 @@ class AppStrings {
     'noFingerprintEnrolled':
         'No fingerprint enrolled on this phone. Add one in Android '
             'Settings > Security > Fingerprint.',
+    'moveUp': 'Move up',
+    'moveDown': 'Move down',
+    'soundImportError': 'Could not import this sound. Check the file format.',
 
     'lockAppTitle': 'App locked',
     'choosePin': 'Choose a PIN code',
