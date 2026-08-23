@@ -42,6 +42,7 @@ class LockSettings {
     this.patternHash,
     this.fallbackMethod,
     this.useBiometric = false,
+    this.useDeviceFingerprint = false,
     this.legacyPattern,
   });
 
@@ -63,6 +64,10 @@ class LockSettings {
 
   /// La biométrie est utilisée seule ou comme méthode principale.
   final bool useBiometric;
+
+  /// Utilise les empreintes déjà enregistrées sur l'appareil (paramètres
+  /// Android) au lieu d'une inscription dédiée dans l'application.
+  final bool useDeviceFingerprint;
 
   bool get hasCredential => switch (method) {
         LockMethod.pin => pinHash != null,
@@ -184,6 +189,7 @@ class LockSettings {
           : patternHash,
       fallbackMethod: fallbackMethod,
       useBiometric: useBiometric,
+      useDeviceFingerprint: useDeviceFingerprint,
     );
   }
 
@@ -195,6 +201,7 @@ class LockSettings {
     String? patternHash,
     LockMethod? fallbackMethod,
     bool? useBiometric,
+    bool? useDeviceFingerprint,
     bool clearFallback = false,
   }) {
     return LockSettings(
@@ -205,6 +212,7 @@ class LockSettings {
       patternHash: patternHash ?? this.patternHash,
       fallbackMethod: clearFallback ? null : fallbackMethod ?? this.fallbackMethod,
       useBiometric: useBiometric ?? this.useBiometric,
+      useDeviceFingerprint: useDeviceFingerprint ?? this.useDeviceFingerprint,
     );
   }
 
@@ -218,6 +226,7 @@ class LockSettings {
       patternHash: map['patternHash'] as String?,
       fallbackMethod: LockMethodX.tryParse(map['fallbackMethod'] as String?),
       useBiometric: (map['useBiometric'] as bool?) ?? false,
+      useDeviceFingerprint: (map['useDeviceFingerprint'] as bool?) ?? false,
       legacyPattern: storedPattern is List
           ? [for (final v in storedPattern) v as int]
           : null,
@@ -232,6 +241,7 @@ class LockSettings {
         'patternHash': patternHash,
         'fallbackMethod': fallbackMethod?.name,
         'useBiometric': useBiometric,
+        'useDeviceFingerprint': useDeviceFingerprint,
         // Conserve le motif hérité tant qu'il n'a pas été reconfiguré
         // (section migration) ; supprimé dès qu'un nouveau secret est posé.
         if (patternHash == null && legacyPattern != null)

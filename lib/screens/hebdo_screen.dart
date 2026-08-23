@@ -48,8 +48,9 @@ class _HebdoScreenState extends ConsumerState<HebdoScreen> {
     final s = ref.watch(stringsProvider);
     final scheme = Theme.of(context).colorScheme;
 
-    final dayActivities = activities.where((a) => a.isDueOn(_selectedDay)).toList()
-      ..sort(compareActivities);
+    final dayActivities =
+        activities.where((a) => a.isDueOn(_selectedDay)).toList()
+          ..sort(compareActivities);
 
     final weekDays = [
       for (var i = 0; i < 7; i++) _weekStart.add(Duration(days: i)),
@@ -69,11 +70,13 @@ class _HebdoScreenState extends ConsumerState<HebdoScreen> {
       dayDoneCounts[d] = done;
     }
     final fullDays = weekDays
-        .where((d) => (dayDueCounts[d] ?? 0) > 0 && (dayDoneCounts[d] ?? 0) >= (dayDueCounts[d] ?? 0))
+        .where(
+          (d) =>
+              (dayDueCounts[d] ?? 0) > 0 &&
+              (dayDoneCounts[d] ?? 0) >= (dayDueCounts[d] ?? 0),
+        )
         .length;
-    final activeDays = weekDays
-        .where((d) => (dayDueCounts[d] ?? 0) > 0)
-        .length;
+    final activeDays = weekDays.where((d) => (dayDueCounts[d] ?? 0) > 0).length;
     final doneThisWeek = dayDoneCounts.values.fold<int>(0, (sum, v) => sum + v);
 
     return Scaffold(
@@ -118,7 +121,8 @@ class _HebdoScreenState extends ConsumerState<HebdoScreen> {
                     WeekDayStrip(
                       weekStart: _weekStart,
                       selectedDay: _selectedDay,
-                      activities: activities,
+                      dueCounts: dayDueCounts,
+                      doneCounts: dayDoneCounts,
                       onDaySelected: (day) =>
                           setState(() => _selectedDay = day),
                     ),
@@ -145,10 +149,7 @@ class _HebdoScreenState extends ConsumerState<HebdoScreen> {
             ),
           ),
           if (dayActivities.isEmpty)
-            AppEmptyState(
-              icon: Icons.event_busy,
-              title: s.weeklyEmpty,
-            )
+            AppEmptyState(icon: Icons.event_busy, title: s.weeklyEmpty)
           else
             for (final activity in dayActivities)
               Padding(
@@ -157,7 +158,8 @@ class _HebdoScreenState extends ConsumerState<HebdoScreen> {
                   activity: activity,
                   day: _selectedDay,
                   onTap: () => _openEdit(activity),
-                  onToggle: () => toggleCompletedWithAlarm(ref, activity, _selectedDay),
+                  onToggle: () =>
+                      toggleCompletedWithAlarm(ref, activity, _selectedDay),
                   onDelete: () => _deleteActivity(activity, s),
                 ),
               ),
@@ -178,10 +180,7 @@ class _HebdoScreenState extends ConsumerState<HebdoScreen> {
   }
 
   String formatDay(DateTime day, String locale) {
-    return DateFormat(
-      'EEEE d MMMM yyyy',
-      intlLocale(locale),
-    ).format(day);
+    return DateFormat('EEEE d MMMM yyyy', intlLocale(locale)).format(day);
   }
 
   String _capitalize(String s) =>
@@ -242,11 +241,7 @@ class _WeeklyStats extends StatelessWidget {
               scheme: scheme,
             ),
           ),
-          Container(
-            width: 1,
-            height: 40,
-            color: scheme.outlineVariant,
-          ),
+          Container(width: 1, height: 40, color: scheme.outlineVariant),
           Expanded(
             child: _StatItem(
               icon: Icons.local_fire_department,
@@ -282,9 +277,7 @@ class _StatItem extends StatelessWidget {
         const SizedBox(height: 4),
         Text(
           value,
-          style: AppTypography.sectionTitle.copyWith(
-            color: scheme.onSurface,
-          ),
+          style: AppTypography.sectionTitle.copyWith(color: scheme.onSurface),
         ),
         const SizedBox(height: 2),
         Text(

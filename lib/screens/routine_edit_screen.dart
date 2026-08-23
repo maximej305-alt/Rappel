@@ -47,6 +47,14 @@ class _RoutineEditScreenState extends ConsumerState<RoutineEditScreen> {
   late String _icon;
   late List<_ActivityDraft> _rows;
 
+  /// Clé du modèle actuellement appliqué (surbrillance dans le sélecteur).
+  String? _selectedTemplateKey;
+
+  /// `true` quand le nom a été rempli automatiquement depuis un modèle :
+  /// changer de modèle met alors aussi le nom à jour au lieu de laisser
+  /// l'ancien (« Routine du matin » alors qu'on a choisi « Soirée »).
+  bool _nameAutoFilled = false;
+
   bool get _isEditing => widget.routine != null;
 
   @override
@@ -89,10 +97,12 @@ class _RoutineEditScreenState extends ConsumerState<RoutineEditScreen> {
 
   void _applyTemplate(RoutineTemplate template) {
     setState(() {
-      if (_nameController.text.trim().isEmpty) {
+      if (_nameController.text.trim().isEmpty || _nameAutoFilled) {
         _nameController.text = context.l10n.tr(template.key);
+        _nameAutoFilled = true;
       }
       _icon = template.icon;
+      _selectedTemplateKey = template.key;
       final defaultSound = ref.read(settingsProvider).defaultSound;
       _rows = [
         for (final a in template.activities)
@@ -349,6 +359,7 @@ class _RoutineEditScreenState extends ConsumerState<RoutineEditScreen> {
               _TemplatePicker(
                 onSelected: _applyTemplate,
                 customLabel: s.tmplCustom,
+                selectedKey: _selectedTemplateKey,
               ),
               const SizedBox(height: 20),
             ],
@@ -438,33 +449,47 @@ class _ActivityDraft {
 }
 
 class _TemplatePicker extends StatelessWidget {
-  const _TemplatePicker({required this.onSelected, required this.customLabel});
+  const _TemplatePicker({
+    required this.onSelected,
+    required this.customLabel,
+    this.selectedKey,
+  });
 
   final ValueChanged<RoutineTemplate> onSelected;
   final String customLabel;
 
+  /// Clé du modèle mis en surbrillance (`null` = aucun).
+  final String? selectedKey;
+
   @override
   Widget build(BuildContext context) {
     final s = context.l10n;
+    // SingleChildScrollView horizontal + Row : un ListView imbriqué dans le
+    // ListView vertical de l'écran provoque des conflits de gestes — un tap
+    // peut être interprété comme un scroll et la carte ne réagit pas.
     return SizedBox(
       height: 100,
-      child: ListView(
+      child: SingleChildScrollView(
         scrollDirection: Axis.horizontal,
-        children: [
-          for (final t in RoutineTemplate.templates)
+        child: Row(
+          children: [
+            for (final t in RoutineTemplate.templates)
+              _TemplateCard(
+                icon: t.icon,
+                label: s.tr(t.key),
+                selected: selectedKey == t.key,
+                onTap: () => onSelected(t),
+              ),
             _TemplateCard(
-              icon: t.icon,
-              label: s.tr(t.key),
-              onTap: () => onSelected(t),
+              icon: '➕',
+              label: customLabel,
+              selected: selectedKey == 'tmplCustom',
+              onTap: () => onSelected(
+                const RoutineTemplate(key: 'tmplCustom', icon: '📋', activities: []),
+              ),
             ),
-          _TemplateCard(
-            icon: '➕',
-            label: customLabel,
-            onTap: () => onSelected(
-              const RoutineTemplate(key: 'tmplCustom', icon: '📋', activities: []),
-            ),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }
@@ -475,11 +500,15 @@ class _TemplateCard extends StatelessWidget {
     required this.icon,
     required this.label,
     required this.onTap,
+    this.selected = false,
   });
 
   final String icon;
   final String label;
   final VoidCallback onTap;
+
+  /// Mis en surbrillance quand ce modèle est celui appliqué.
+  final bool selected;
 
   @override
   Widget build(BuildContext context) {
@@ -492,9 +521,16 @@ class _TemplateCard extends StatelessWidget {
         child: Container(
           width: 92,
           decoration: BoxDecoration(
-            color: scheme.surfaceContainerHighest.withValues(alpha: 0.5),
+            color: selected
+                ? scheme.primaryContainer.withValues(alpha: 0.7)
+                : scheme.surfaceContainerHighest.withValues(alpha: 0.5),
             borderRadius: BorderRadius.circular(16),
-            border: Border.all(color: scheme.outlineVariant.withValues(alpha: 0.4)),
+            border: Border.all(
+              color: selected
+                  ? scheme.primary
+                  : scheme.outlineVariant.withValues(alpha: 0.4),
+              width: selected ? 1.6 : 1,
+            ),
           ),
           padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
           child: Column(

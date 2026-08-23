@@ -185,6 +185,9 @@ class AppStrings {
   String get methodChanged => _('methodChanged');
   String get codeUpdated => _('codeUpdated');
   String get noBiometric => _('noBiometric');
+  String get useDeviceFingerprintTitle => _('useDeviceFingerprintTitle');
+  String get useDeviceFingerprintHint => _('useDeviceFingerprintHint');
+  String get noFingerprintEnrolled => _('noFingerprintEnrolled');
 
   // ————— Réglages additionnels (nouveaux écrans) —————
   /// Alias lisibles utilisés dans les pages de réglages modernes.
@@ -594,6 +597,14 @@ class AppStrings {
     'codeUpdated': 'Code mis à jour',
     'noBiometric': 'Ton téléphone ne prend pas en charge '
         'l\'empreinte digitale. Choisis un code PIN.',
+    'useDeviceFingerprintTitle':
+        'Déverrouiller avec l\'empreinte du téléphone',
+    'useDeviceFingerprintHint':
+        'Utilise l\'empreinte déjà enregistrée dans les paramètres Android — '
+            'aucune nouvelle inscription nécessaire.',
+    'noFingerprintEnrolled':
+        'Aucune empreinte enregistrée sur ce téléphone. Ajoute-en une dans '
+            'Réglages Android > Sécurité > Empreinte digitale.',
 
     'lockAppTitle': 'Application verrouillée',
     'choosePin': 'Choisissez un code PIN',
@@ -969,6 +980,13 @@ class AppStrings {
     'codeUpdated': 'Code updated',
     'noBiometric': 'Your phone does not support fingerprint. '
         'Choose a PIN code instead.',
+    'useDeviceFingerprintTitle': 'Unlock with phone fingerprint',
+    'useDeviceFingerprintHint':
+        'Uses the fingerprint already registered in Android settings — '
+            'no new enrollment needed.',
+    'noFingerprintEnrolled':
+        'No fingerprint enrolled on this phone. Add one in Android '
+            'Settings > Security > Fingerprint.',
 
     'lockAppTitle': 'App locked',
     'choosePin': 'Choose a PIN code',

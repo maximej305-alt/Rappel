@@ -25,30 +25,21 @@ class _CalendarScreenState extends ConsumerState<CalendarScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final activities = ref.watch(activitiesProvider);
     final locale = ref.watch(localeProvider);
     final s = ref.watch(stringsProvider);
     final scheme = Theme.of(context).colorScheme;
 
     // Activités du jour sélectionné : memoïsées par clé de jour (calculées
     // uniquement si la liste globale ou le jour change).
-    final selectedActivities =
-        ref.watch(dayActivitiesProvider(Activity.dateKey(_selectedDay)));
+    final selectedActivities = ref.watch(
+      dayActivitiesProvider(Activity.dateKey(_selectedDay)),
+    );
 
-    final events = <DateTime, List<Activity>>{};
-    final monthStart = DateTime(_focusedDay.year, _focusedDay.month, 1)
-        .subtract(const Duration(days: 7));
-    final monthEnd = DateTime(_focusedDay.year, _focusedDay.month + 1, 1)
-        .add(const Duration(days: 14));
-    for (final a in activities) {
-      var cursor = monthStart;
-      while (!cursor.isAfter(monthEnd)) {
-        if (a.isDueOn(cursor)) {
-          events.putIfAbsent(cursor, () => []).add(a);
-        }
-        cursor = cursor.add(const Duration(days: 1));
-      }
-    }
+    // Événements du mois affiché : memoïsés par mois (recalculés seulement
+    // si la liste globale ou le mois change, jamais à chaque rebuild).
+    final events = ref.watch(
+      monthEventsProvider(DateTime(_focusedDay.year, _focusedDay.month)),
+    );
 
     return Scaffold(
       appBar: AppBar(title: Text(s.calendar)),
@@ -126,10 +117,7 @@ class _CalendarScreenState extends ConsumerState<CalendarScreen> {
             ),
           ),
           if (selectedActivities.isEmpty)
-            AppEmptyState(
-              icon: Icons.event_busy,
-              title: s.weeklyEmpty,
-            )
+            AppEmptyState(icon: Icons.event_busy, title: s.weeklyEmpty)
           else
             for (final activity in selectedActivities)
               Padding(
@@ -138,7 +126,8 @@ class _CalendarScreenState extends ConsumerState<CalendarScreen> {
                   activity: activity,
                   day: _selectedDay,
                   onTap: () => _openEdit(activity),
-                  onToggle: () => toggleCompletedWithAlarm(ref, activity, _selectedDay),
+                  onToggle: () =>
+                      toggleCompletedWithAlarm(ref, activity, _selectedDay),
                   onDelete: () => _deleteActivity(activity, s),
                 ),
               ),

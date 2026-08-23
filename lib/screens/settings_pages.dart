@@ -33,11 +33,11 @@ const double _l = AppSpacing.xl;
 const double _xl = AppSpacing.xxl;
 
 String lockMethodLabel(AppStrings s, LockMethod method) => switch (method) {
-      LockMethod.pin => s.pinLabel,
-      LockMethod.password => s.passwordLabel,
-      LockMethod.pattern => s.patternLabel,
-      LockMethod.biometric => s.biometricLabel,
-    };
+  LockMethod.pin => s.pinLabel,
+  LockMethod.password => s.passwordLabel,
+  LockMethod.pattern => s.patternLabel,
+  LockMethod.biometric => s.biometricLabel,
+};
 
 /// Page de réglages Apparence (Thème, Palette, Accent, Taille du texte, Police, AMOLED).
 class AppearanceSettingsPage extends ConsumerWidget {
@@ -52,9 +52,7 @@ class AppearanceSettingsPage extends ConsumerWidget {
     final scheme = Theme.of(context).colorScheme;
 
     return Scaffold(
-      appBar: AppBar(
-        title: Text(s.appearanceSettings),
-      ),
+      appBar: AppBar(title: Text(s.appearanceSettings)),
       body: ListView(
         padding: const EdgeInsets.symmetric(horizontal: _m, vertical: _s),
         children: [
@@ -66,17 +64,36 @@ class AppearanceSettingsPage extends ConsumerWidget {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(s.theme, style: AppTypography.titleMedium.copyWith(fontWeight: AppTypography.w700)),
+                  Text(
+                    s.theme,
+                    style: AppTypography.titleMedium.copyWith(
+                      fontWeight: AppTypography.w700,
+                    ),
+                  ),
                   SizedBox(height: _s),
                   SegmentedButton<ThemeMode>(
                     segments: [
-                      ButtonSegment(value: ThemeMode.light, label: Text(s.themeLight), icon: const Icon(Icons.light_mode)),
-                      ButtonSegment(value: ThemeMode.dark, label: Text(s.themeDark), icon: const Icon(Icons.dark_mode)),
-                      ButtonSegment(value: ThemeMode.system, label: Text(s.themeSystem), icon: const Icon(Icons.brightness_auto)),
+                      ButtonSegment(
+                        value: ThemeMode.light,
+                        label: Text(s.themeLight),
+                        icon: const Icon(Icons.light_mode),
+                      ),
+                      ButtonSegment(
+                        value: ThemeMode.dark,
+                        label: Text(s.themeDark),
+                        icon: const Icon(Icons.dark_mode),
+                      ),
+                      ButtonSegment(
+                        value: ThemeMode.system,
+                        label: Text(s.themeSystem),
+                        icon: const Icon(Icons.brightness_auto),
+                      ),
                     ],
                     selected: {themeMode},
                     onSelectionChanged: (selected) {
-                      ref.read(settingsProvider.notifier).update(settings.copyWith(themeMode: selected.first));
+                      ref
+                          .read(settingsProvider.notifier)
+                          .update(settings.copyWith(themeMode: selected.first));
                     },
                   ),
                 ],
@@ -106,7 +123,9 @@ class AppearanceSettingsPage extends ConsumerWidget {
                   ),
                 );
                 if (chosen != null) {
-                  ref.read(settingsProvider.notifier).update(settings.copyWith(palette: chosen));
+                  ref
+                      .read(settingsProvider.notifier)
+                      .update(settings.copyWith(palette: chosen));
                 }
               },
             ),
@@ -150,9 +169,9 @@ class AppearanceSettingsPage extends ConsumerWidget {
                   ),
                 );
                 if (chosen != null) {
-                  ref.read(settingsProvider.notifier).update(
-                        settings.copyWith(accent: chosen),
-                      );
+                  ref
+                      .read(settingsProvider.notifier)
+                      .update(settings.copyWith(accent: chosen));
                 }
               },
             ),
@@ -167,7 +186,9 @@ class AppearanceSettingsPage extends ConsumerWidget {
                 subtitle: Text(s.amoledHint),
                 value: settings.amoled,
                 onChanged: (val) {
-                  ref.read(settingsProvider.notifier).update(settings.copyWith(amoled: val));
+                  ref
+                      .read(settingsProvider.notifier)
+                      .update(settings.copyWith(amoled: val));
                 },
               ),
             ),
@@ -180,17 +201,25 @@ class AppearanceSettingsPage extends ConsumerWidget {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(s.textSize, style: AppTypography.titleMedium.copyWith(fontWeight: AppTypography.w700)),
+                  Text(
+                    s.textSize,
+                    style: AppTypography.titleMedium.copyWith(
+                      fontWeight: AppTypography.w700,
+                    ),
+                  ),
                   SizedBox(height: _xs),
-                  Text(s.textSizeHint, style: AppTypography.bodySmall.copyWith(color: scheme.onSurfaceVariant)),
-                  Slider(
-                    value: settings.textScale,
-                    min: 0.85,
-                    max: 1.5,
-                    divisions: 4,
-                    label: '${(settings.textScale * 100).round()}%',
-                    onChanged: (val) {
-                      ref.read(settingsProvider.notifier).update(settings.copyWith(textScale: val));
+                  Text(
+                    s.textSizeHint,
+                    style: AppTypography.bodySmall.copyWith(
+                      color: scheme.onSurfaceVariant,
+                    ),
+                  ),
+                  _TextScaleSlider(
+                    initial: settings.textScale,
+                    onCommit: (val) {
+                      ref
+                          .read(settingsProvider.notifier)
+                          .update(settings.copyWith(textScale: val));
                     },
                   ),
                 ],
@@ -228,9 +257,9 @@ class AppearanceSettingsPage extends ConsumerWidget {
                   ),
                 );
                 if (chosen != null) {
-                  ref.read(settingsProvider.notifier).update(
-                        settings.copyWith(fontFamily: chosen),
-                      );
+                  ref
+                      .read(settingsProvider.notifier)
+                      .update(settings.copyWith(fontFamily: chosen));
                 }
               },
             ),
@@ -252,9 +281,7 @@ class NotificationSettingsPage extends ConsumerWidget {
     final soundOption = SoundOption.fromId(settings.defaultSound);
 
     return Scaffold(
-      appBar: AppBar(
-        title: Text(s.notificationSettings),
-      ),
+      appBar: AppBar(title: Text(s.notificationSettings)),
       body: ListView(
         padding: const EdgeInsets.all(_m),
         children: [
@@ -303,8 +330,9 @@ class NotificationSettingsPage extends ConsumerWidget {
                 // Propager le nouveau son par défaut aux activités qui suivent
                 // le défaut (sound 'default' ou l'ancien défaut), puis
                 // replanifier pour que le changement sonne réellement.
-                final activitiesNotifier =
-                    ref.read(activitiesProvider.notifier);
+                final activitiesNotifier = ref.read(
+                  activitiesProvider.notifier,
+                );
                 final updated = <Activity>[];
                 for (final a in ref.read(activitiesProvider)) {
                   if (a.sound == 'default' || a.sound == oldDefault) {
@@ -330,7 +358,11 @@ class NotificationSettingsPage extends ConsumerWidget {
             margin: const EdgeInsets.only(bottom: _m),
             child: ListTile(
               title: Text(s.reminderBefore),
-              subtitle: Text(settings.reminderOffsetMinutes == 0 ? s.exactTime : s.reminderMinutes(settings.reminderOffsetMinutes)),
+              subtitle: Text(
+                settings.reminderOffsetMinutes == 0
+                    ? s.exactTime
+                    : s.reminderMinutes(settings.reminderOffsetMinutes),
+              ),
               trailing: const Icon(Icons.timer_outlined),
               onTap: () async {
                 final chosen = await showDialog<int>(
@@ -341,7 +373,9 @@ class NotificationSettingsPage extends ConsumerWidget {
                       for (final opt in AppSettings.reminderOptions)
                         SimpleDialogOption(
                           onPressed: () => Navigator.pop(ctx, opt),
-                          child: Text(opt == 0 ? s.exactTime : s.reminderMinutes(opt)),
+                          child: Text(
+                            opt == 0 ? s.exactTime : s.reminderMinutes(opt),
+                          ),
                         ),
                     ],
                   ),
@@ -387,7 +421,9 @@ class _DndTileState extends ConsumerState<_DndTile> {
 
   AndroidFlutterLocalNotificationsPlugin? _impl() =>
       FlutterLocalNotificationsPlugin()
-          .resolvePlatformSpecificImplementation<AndroidFlutterLocalNotificationsPlugin>();
+          .resolvePlatformSpecificImplementation<
+            AndroidFlutterLocalNotificationsPlugin
+          >();
 
   Future<void> _refresh() async {
     final access = await _impl()?.hasNotificationPolicyAccess() ?? false;
@@ -438,9 +474,7 @@ class SecuritySettingsPage extends ConsumerWidget {
     final s = ref.watch(stringsProvider);
 
     return Scaffold(
-      appBar: AppBar(
-        title: Text(s.securitySettings),
-      ),
+      appBar: AppBar(title: Text(s.securitySettings)),
       body: ListView(
         padding: const EdgeInsets.all(_m),
         children: [
@@ -471,9 +505,9 @@ class SecuritySettingsPage extends ConsumerWidget {
                     await ref.read(lockSettingsProvider.notifier).update(setup);
                   }
                 } else {
-                  await ref.read(lockSettingsProvider.notifier).update(
-                        lockSettings.copyWith(enabled: false),
-                      );
+                  await ref
+                      .read(lockSettingsProvider.notifier)
+                      .update(lockSettings.copyWith(enabled: false));
                 }
               },
             ),
@@ -502,6 +536,52 @@ class SecuritySettingsPage extends ConsumerWidget {
                 },
               ),
             ),
+          if (lockSettings.enabled && lockSettings.method != LockMethod.biometric)
+            Card(
+              margin: const EdgeInsets.only(bottom: _m),
+              child: SwitchListTile(
+                title: Text(s.useDeviceFingerprintTitle),
+                subtitle: Text(s.useDeviceFingerprintHint),
+                value: lockSettings.useDeviceFingerprint,
+                secondary: Icon(
+                  Icons.fingerprint,
+                  color: lockSettings.useDeviceFingerprint
+                      ? Theme.of(context).colorScheme.primary
+                      : Theme.of(context).colorScheme.outline,
+                ),
+                onChanged: (val) async {
+                  // Activation : vérifier qu'une empreinte existe déjà sur
+                  // l'appareil. Sinon, on explique comment en ajouter une
+                  // dans les paramètres Android (aucune inscription in-app).
+                  if (val) {
+                    final ok = await ProviderScope.containerOf(
+                      context,
+                      listen: false,
+                    ).read(biometricServiceProvider).isSupported;
+                    if (!context.mounted) return;
+                    if (!ok) {
+                      showDialog<void>(
+                        context: context,
+                        builder: (ctx) => AlertDialog(
+                          title: Text(s.biometricLabel),
+                          content: Text(s.noFingerprintEnrolled),
+                          actions: [
+                            TextButton(
+                              onPressed: () => Navigator.of(ctx).pop(),
+                              child: Text(s.ok),
+                            ),
+                          ],
+                        ),
+                      );
+                      return;
+                    }
+                  }
+                  await ref.read(lockSettingsProvider.notifier).update(
+                        lockSettings.copyWith(useDeviceFingerprint: val),
+                      );
+                },
+              ),
+            ),
         ],
       ),
     );
@@ -511,9 +591,10 @@ class SecuritySettingsPage extends ConsumerWidget {
   /// L'option biométrie est grisée si l'appareil n'a pas de capteur /
   /// aucune empreinte enregistrée.
   Future<LockMethod?> _pickLockMethod(BuildContext context, dynamic s) async {
-    final biometricOk = await ProviderScope.containerOf(context, listen: false)
-        .read(biometricServiceProvider)
-        .isSupported;
+    final biometricOk = await ProviderScope.containerOf(
+      context,
+      listen: false,
+    ).read(biometricServiceProvider).isSupported;
     if (!context.mounted) return null;
     final title = context.l10n.lockMethodTitle;
     final s = context.l10n;
@@ -546,10 +627,7 @@ class SecuritySettingsPage extends ConsumerWidget {
                         padding: const EdgeInsets.only(top: 2),
                         child: Text(
                           s.noBiometric,
-                          style: TextStyle(
-                            fontSize: 12,
-                            color: scheme.outline,
-                          ),
+                          style: TextStyle(fontSize: 12, color: scheme.outline),
                         ),
                       ),
                   ],
@@ -584,9 +662,7 @@ class LanguageSettingsPage extends ConsumerWidget {
     ];
 
     return Scaffold(
-      appBar: AppBar(
-        title: Text(s.languageSettings),
-      ),
+      appBar: AppBar(title: Text(s.languageSettings)),
       body: ListView(
         padding: const EdgeInsets.all(_m),
         children: [
@@ -596,7 +672,12 @@ class LanguageSettingsPage extends ConsumerWidget {
               child: ListTile(
                 leading: Text(flag, style: const TextStyle(fontSize: 24)),
                 title: Text(name),
-                trailing: settings.locale == code ? Icon(Icons.check_circle, color: Theme.of(context).colorScheme.primary) : null,
+                trailing: settings.locale == code
+                    ? Icon(
+                        Icons.check_circle,
+                        color: Theme.of(context).colorScheme.primary,
+                      )
+                    : null,
                 onTap: () async {
                   await initializeDateFormatting(intlLocale(code));
                   final next = settings.copyWith(locale: code);
@@ -627,9 +708,7 @@ class DataSettingsPage extends ConsumerWidget {
     final s = ref.watch(stringsProvider);
 
     return Scaffold(
-      appBar: AppBar(
-        title: Text(s.dataManagement),
-      ),
+      appBar: AppBar(title: Text(s.dataManagement)),
       body: ListView(
         padding: const EdgeInsets.all(_m),
         children: [
@@ -694,9 +773,7 @@ class _AboutSettingsPageState extends State<AboutSettingsPage> {
     final s = context.l10n;
 
     return Scaffold(
-      appBar: AppBar(
-        title: Text(s.aboutApp),
-      ),
+      appBar: AppBar(title: Text(s.aboutApp)),
       body: ListView(
         padding: const EdgeInsets.all(_m),
         children: [
@@ -728,14 +805,18 @@ class _AboutSettingsPageState extends State<AboutSettingsPage> {
           Center(
             child: Text(
               s.appName,
-              style: AppTypography.titleLarge.copyWith(fontWeight: AppTypography.w800),
+              style: AppTypography.titleLarge.copyWith(
+                fontWeight: AppTypography.w800,
+              ),
             ),
           ),
           SizedBox(height: _xs),
           Center(
             child: Text(
               s.versionInfo.replaceAll('{version}', _version),
-              style: AppTypography.bodyMedium.copyWith(color: scheme.onSurfaceVariant),
+              style: AppTypography.bodyMedium.copyWith(
+                color: scheme.onSurfaceVariant,
+              ),
             ),
           ),
           SizedBox(height: _xl),
@@ -745,15 +826,72 @@ class _AboutSettingsPageState extends State<AboutSettingsPage> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(s.changelogTitle, style: AppTypography.titleMedium.copyWith(fontWeight: AppTypography.w700)),
+                  Text(
+                    s.changelogTitle,
+                    style: AppTypography.titleMedium.copyWith(
+                      fontWeight: AppTypography.w700,
+                    ),
+                  ),
                   const Divider(),
-                  Text(s.aboutChangelog, style: AppTypography.bodyMedium.copyWith(color: scheme.onSurfaceVariant)),
+                  Text(
+                    s.aboutChangelog,
+                    style: AppTypography.bodyMedium.copyWith(
+                      color: scheme.onSurfaceVariant,
+                    ),
+                  ),
                 ],
               ),
             ),
           ),
         ],
       ),
+    );
+  }
+}
+
+/// Curseur de taille de texte : pendant le glisser, seule la valeur affichée
+/// localement change (setState local, pas de rebuild global). Les réglages
+/// (thème + MediaQuery de l'app entière) ne sont commités qu'à la fin du
+/// glisser — le drag ne refait plus tout le layout de l'application par tick.
+class _TextScaleSlider extends StatefulWidget {
+  const _TextScaleSlider({required this.initial, required this.onCommit});
+
+  final double initial;
+  final ValueChanged<double> onCommit;
+
+  @override
+  State<_TextScaleSlider> createState() => _TextScaleSliderState();
+}
+
+class _TextScaleSliderState extends State<_TextScaleSlider> {
+  late double _value = widget.initial;
+  bool _dragging = false;
+
+  @override
+  void didUpdateWidget(_TextScaleSlider oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.initial != widget.initial && !_dragging) {
+      _value = widget.initial;
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Slider(
+      value: _value,
+      min: 0.85,
+      max: 1.5,
+      divisions: 4,
+      label: '${(_value * 100).round()}%',
+      onChangeStart: (_) => setState(() => _dragging = true),
+      onChanged: (val) => setState(() => _value = val),
+      onChangeEnd: (val) {
+        setState(() {
+          _dragging = false;
+          _value = val;
+        });
+        widget.onCommit(val);
+      },
     );
   }
 }

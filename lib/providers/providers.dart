@@ -57,8 +57,7 @@ class TodayNotifier extends StateNotifier<String> {
   }
 }
 
-final todayProvider =
-    StateNotifierProvider<TodayNotifier, String>((ref) {
+final todayProvider = StateNotifierProvider<TodayNotifier, String>((ref) {
   return TodayNotifier(Clock.system());
 });
 
@@ -89,6 +88,15 @@ class ActivitiesNotifier extends StateNotifier<List<Activity>> {
     if (changed) await _storage.saveActivities(sanitized);
   }
 
+  /// Reporte plusieurs suppressions en une seule écriture Hive (suppression
+  /// de routine) : un `setState` + un `put` au lieu d'un par activité.
+  Future<void> removeMany(List<String> ids) async {
+    if (ids.isEmpty) return;
+    final remove = ids.toSet();
+    state = state.where((a) => !remove.contains(a.id)).toList();
+    await _storage.saveActivities(state);
+  }
+
   Future<void> add(Activity activity) async {
     state = [...state, activity];
     await _storage.saveActivities(state);
@@ -108,9 +116,7 @@ class ActivitiesNotifier extends StateNotifier<List<Activity>> {
   }
 
   Future<void> update(Activity activity) async {
-    state = [
-      for (final a in state) a.id == activity.id ? activity : a,
-    ];
+    state = [for (final a in state) a.id == activity.id ? activity : a];
     await _storage.saveActivities(state);
   }
 
@@ -128,15 +134,38 @@ class ActivitiesNotifier extends StateNotifier<List<Activity>> {
       for (final a in state)
         a.id == id ? a.withCompletedDay(day, !a.isCompletedOn(day)) : a,
     ];
-    await _storage.saveActivities(state);
+    // Écriture Hive différée (debounce) : cocher/décocher est l'action la
+    // plus fréquente — sérialiser toute la liste synchroniquement à chaque
+    // tap fait bégayer l'UI. Les taps rapprochés fusionnent en un seul
+    // enregistrement ; l'état en mémoire (source de vérité pour l'UI) est
+    // mis à jour immédiatement.
+    _scheduleActivitiesWrite();
+  }
+
+  Timer? _activitiesWriteTimer;
+
+  /// Planifie l'écriture Hive de l'état courant, en annulant toute écriture
+  /// déjà programmée (les toggles successifs fusionnent en une seule écriture).
+  void _scheduleActivitiesWrite() {
+    _activitiesWriteTimer?.cancel();
+    _activitiesWriteTimer = Timer(const Duration(milliseconds: 400), () {
+      _activitiesWriteTimer = null;
+      _storage.saveActivities(state);
+    });
+  }
+
+  @override
+  void dispose() {
+    _activitiesWriteTimer?.cancel();
+    super.dispose();
   }
 }
 
 final activitiesProvider =
     StateNotifierProvider<ActivitiesNotifier, List<Activity>>((ref) {
-  final storage = ref.watch(storageServiceProvider);
-  return ActivitiesNotifier(storage);
-});
+      final storage = ref.watch(storageServiceProvider);
+      return ActivitiesNotifier(storage);
+    });
 
 /// Statistiques de la routine, recalculées uniquement quand les activités
 /// changent (jamais de calcul lourd dans `build()`). Le jour courant suit
@@ -158,14 +187,44 @@ final todayActivitiesProvider = Provider<List<Activity>>((ref) {
 
 /// Activités dues un jour donné, triées. Memoïsées par clé de jour (évite le
 /// recalcule du calendrier à chaque rebuild de l'écran).
-final dayActivitiesProvider =
-    Provider.family<List<Activity>, String>((ref, dayKey) {
+final dayActivitiesProvider = Provider.family<List<Activity>, String>((
+  ref,
+  dayKey,
+) {
   final activities = ref.watch(activitiesProvider);
   final day = Activity.parseDateKey(dayKey);
   if (day == null) return const [];
   return activities.where((a) => a.isDueOn(day)).toList()
     ..sort(compareActivities);
 });
+
+/// Événements du calendrier pour le mois de [month] (fenêtre élargie pour
+/// couvrir les jours des bordures du TableCalendar). Memoïsés par mois :
+/// recalculés uniquement quand la liste globale change OU quand le mois
+/// affiché change — jamais à chaque rebuild de l'écran (changement de jour,
+/// changement de page, etc.). Seule contrainte : la clé est le 1er du mois.
+final monthEventsProvider =
+    Provider.family<Map<DateTime, List<Activity>>, DateTime>((ref, month) {
+      final activities = ref.watch(activitiesProvider);
+      final monthStart = DateTime(month.year, month.month, 1);
+      final start = monthStart.subtract(const Duration(days: 7));
+      final end = DateTime(
+        month.year,
+        month.month + 1,
+        1,
+      ).add(const Duration(days: 14));
+      final events = <DateTime, List<Activity>>{};
+      for (final a in activities) {
+        var cursor = start;
+        while (!cursor.isAfter(end)) {
+          if (a.isDueOn(cursor)) {
+            events.putIfAbsent(cursor, () => []).add(a);
+          }
+          cursor = DateTime(cursor.year, cursor.month, cursor.day + 1);
+        }
+      }
+      return events;
+    });
 
 /// Notifier des catégories. La catégorie de repli « Autre » est protégée :
 /// [delete] ne l'écrase jamais (les activités la référençant doivent être
@@ -197,9 +256,9 @@ class CategoriesNotifier extends StateNotifier<List<Category>> {
 
 final categoriesProvider =
     StateNotifierProvider<CategoriesNotifier, List<Category>>((ref) {
-  final storage = ref.watch(storageServiceProvider);
-  return CategoriesNotifier(storage)..load();
-});
+      final storage = ref.watch(storageServiceProvider);
+      return CategoriesNotifier(storage)..load();
+    });
 
 /// Résout une catégorie par identifiant ; `null` si elle n'existe plus
 /// (les activités tombent alors sur la catégorie de repli « Autre »).
@@ -235,11 +294,12 @@ class RoutinesNotifier extends StateNotifier<List<Routine>> {
   }
 }
 
-final routinesProvider =
-    StateNotifierProvider<RoutinesNotifier, List<Routine>>((ref) {
-  final storage = ref.watch(storageServiceProvider);
-  return RoutinesNotifier(storage)..load();
-});
+final routinesProvider = StateNotifierProvider<RoutinesNotifier, List<Routine>>(
+  (ref) {
+    final storage = ref.watch(storageServiceProvider);
+    return RoutinesNotifier(storage)..load();
+  },
+);
 
 /// Activités de chaque routine, résolues depuis la liste globale.
 ///
@@ -251,7 +311,10 @@ final routineActivitiesProvider = Provider<Map<String, List<Activity>>>((ref) {
   final byId = {for (final a in activities) a.id: a};
   return {
     for (final r in routines)
-      r.id: [for (final id in r.activityIds) if (byId.containsKey(id)) byId[id]!],
+      r.id: [
+        for (final id in r.activityIds)
+          if (byId.containsKey(id)) byId[id]!,
+      ],
   };
 });
 
@@ -279,8 +342,9 @@ class SettingsNotifier extends StateNotifier<AppSettings> {
   }
 }
 
-final settingsProvider =
-    StateNotifierProvider<SettingsNotifier, AppSettings>((ref) {
+final settingsProvider = StateNotifierProvider<SettingsNotifier, AppSettings>((
+  ref,
+) {
   final storage = ref.watch(storageServiceProvider);
   return SettingsNotifier(storage)..load();
 });
@@ -321,8 +385,9 @@ class LockNotifier extends StateNotifier<LockSettings> {
   }
 }
 
-final lockSettingsProvider =
-    StateNotifierProvider<LockNotifier, LockSettings>((ref) {
+final lockSettingsProvider = StateNotifierProvider<LockNotifier, LockSettings>((
+  ref,
+) {
   final storage = ref.watch(storageServiceProvider);
   return LockNotifier(storage)..load();
 });
@@ -357,13 +422,18 @@ final biometricServiceProvider = Provider<BiometricService>((ref) {
 class BiometricService {
   final LocalAuthentication _auth = LocalAuthentication();
 
-  /// La biométrie est utilisable : capteur présent ET au moins une empreinte
-  /// enregistrée sur l'appareil.
+  /// La biométrie est utilisable : l'appareil prend en charge
+  /// l'authentification biométrique.
+  ///
+  /// Tolérant : sur certains appareils (notamment Android 9), les appels
+  /// `canCheckBiometrics` / `getAvailableBiometrics` échouent ou renvoient
+  /// une liste vide alors que des empreintes SONT enregistrées côté système.
+  /// On se fie donc à `isDeviceSupported()` seul ; si aucune empreinte
+  /// n'existe, `authenticate()` affichera le dialogue système approprié
+  /// (ou échouera proprement) — jamais de blocage injustifié.
   Future<bool> get isSupported async {
     try {
-      return await _auth.isDeviceSupported() &&
-          (await _auth.canCheckBiometrics) &&
-          (await _auth.getAvailableBiometrics()).isNotEmpty;
+      return await _auth.isDeviceSupported();
     } catch (_) {
       return false;
     }
@@ -392,7 +462,8 @@ class BiometricService {
         LocalAuthExceptionCode.noBiometricsEnrolled =>
           BiometricAuthResult.notEnrolled,
         LocalAuthExceptionCode.temporaryLockout ||
-        LocalAuthExceptionCode.biometricLockout => BiometricAuthResult.lockedOut,
+        LocalAuthExceptionCode.biometricLockout =>
+          BiometricAuthResult.lockedOut,
         LocalAuthExceptionCode.userCanceled ||
         LocalAuthExceptionCode.systemCanceled ||
         LocalAuthExceptionCode.timeout => BiometricAuthResult.cancelled,

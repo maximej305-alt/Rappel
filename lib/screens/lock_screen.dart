@@ -268,7 +268,7 @@ class _LockScreenState extends ConsumerState<LockScreen> {
                         ),
                         const SizedBox(height: 4),
                       ],
-                      if (lock.useBiometric &&
+                      if ((lock.useBiometric || lock.useDeviceFingerprint) &&
                           lock.method != LockMethod.biometric &&
                           !inFallback) ...[
                         OutlinedButton.icon(

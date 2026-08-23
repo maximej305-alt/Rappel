@@ -254,10 +254,12 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
         if (habitStats.hasRoutine)
           Padding(
             padding: const EdgeInsets.only(top: 20),
-            child: HabitChart(
-              stats: habitStats,
-              locale: locale,
-              accent: accent,
+            child: RepaintBoundary(
+              child: HabitChart(
+                stats: habitStats,
+                locale: locale,
+                accent: accent,
+              ),
             ),
           ),
         Padding(

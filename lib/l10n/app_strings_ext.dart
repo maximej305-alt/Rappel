@@ -185,6 +185,13 @@ const Map<String, String> _es = {
   'codeUpdated': 'Código actualizado',
   'noBiometric': 'Tu teléfono no admite huella dactilar. '
       'Elige un código PIN.',
+  'useDeviceFingerprintTitle': 'Desbloquear con la huella del teléfono',
+  'useDeviceFingerprintHint':
+      'Usa la huella ya registrada en los ajustes de Android; no hace '
+          'falta registrar otra.',
+  'noFingerprintEnrolled':
+      'No hay ninguna huella registrada en este teléfono. Añade una en '
+          'Ajustes de Android > Seguridad > Huella digital.',
   'lockAppTitle': 'Aplicación bloqueada',
   'choosePin': 'Elige un código PIN',
   'confirmPin': 'Confirma el código PIN',
@@ -548,6 +555,13 @@ const Map<String, String> _de = {
   'codeUpdated': 'Code aktualisiert',
   'noBiometric': 'Dein Telefon unterstützt keinen Fingerabdruck. '
       'Wähle einen PIN-Code.',
+  'useDeviceFingerprintTitle': 'Mit dem Fingerabdruck des Telefons entsperren',
+  'useDeviceFingerprintHint':
+      'Verwendet den bereits in den Android-Einstellungen registrierten '
+          'Fingerabdruck — keine neue Registrierung nötig.',
+  'noFingerprintEnrolled':
+      'Auf diesem Telefon ist kein Fingerabdruck hinterlegt. Füge einen unter '
+          'Android-Einstellungen > Sicherheit > Fingerabdruck hinzu.',
   'lockAppTitle': 'App gesperrt',
   'choosePin': 'Wähle einen PIN-Code',
   'confirmPin': 'PIN-Code bestätigen',
@@ -915,6 +929,14 @@ const Map<String, String> _it = {
   'codeUpdated': 'Codice aggiornato',
   'noBiometric': 'Il tuo telefono non supporta l\'impronta digitale. '
       'Scegli un codice PIN.',
+  'useDeviceFingerprintTitle':
+      'Sblocca con l\'impronta del telefono',
+  'useDeviceFingerprintHint':
+      'Usa l\'impronta già registrata nelle impostazioni Android: nessuna '
+          'nuova registrazione necessaria.',
+  'noFingerprintEnrolled':
+      'Nessuna impronta registrata su questo telefono. Aggiungine una in '
+          'Impostazioni Android > Sicurezza > Impronta digitale.',
   'lockAppTitle': 'App bloccata',
   'choosePin': 'Scegli un codice PIN',
   'confirmPin': 'Conferma il codice PIN',
@@ -1282,6 +1304,13 @@ const Map<String, String> _pt = {
   'codeUpdated': 'Código atualizado',
   'noBiometric': 'Seu telefone não suporta impressão digital. '
       'Escolha um código PIN.',
+  'useDeviceFingerprintTitle': 'Desbloquear com a digital do telefone',
+  'useDeviceFingerprintHint':
+      'Usa a digital já registrada nas configurações do Android; não é '
+          'preciso registrar outra.',
+  'noFingerprintEnrolled':
+      'Nenhuma digital registrada neste telefone. Adicione uma em '
+          'Configurações do Android > Segurança > Impressão digital.',
   'lockAppTitle': 'App bloqueado',
   'choosePin': 'Escolha um código PIN',
   'confirmPin': 'Confirme o código PIN',
@@ -1646,6 +1675,10 @@ const Map<String, String> _zh = {
   'methodChanged': '方式已更换',
   'codeUpdated': '密码已更新',
   'noBiometric': '你的手机不支持指纹。请改用 PIN 码。',
+  'useDeviceFingerprintTitle': '使用手机指纹解锁',
+  'useDeviceFingerprintHint': '使用已在 Android 设置中登记的指纹，无需重新录入。',
+  'noFingerprintEnrolled':
+      '此手机未登记任何指纹。请在 Android 设置 > 安全 > 指纹中添加。',
   'lockAppTitle': '应用已锁定',
   'choosePin': '选择 PIN 码',
   'confirmPin': '确认 PIN 码',
@@ -2001,6 +2034,13 @@ const Map<String, String> _ar = {
   'methodChanged': 'تم تغيير الطريقة',
   'codeUpdated': 'تم تحديث الرمز',
   'noBiometric': 'لا يدعم هاتفك بصمة الإصبع. اختر رمز PIN.',
+  'useDeviceFingerprintTitle': 'الفتح ببصمة الهاتف',
+  'useDeviceFingerprintHint':
+      'يستخدم البصمة المسجلة مسبقًا في إعدادات Android — لا حاجة لتسجيل '
+          'بصمة جديدة.',
+  'noFingerprintEnrolled':
+      'لا توجد بصمة مسجلة على هذا الهاتف. أضف واحدة من إعدادات Android > '
+          'الأمان > بصمة الإصبع.',
   'lockAppTitle': 'التطبيق مقفل',
   'choosePin': 'اختر رمز PIN',
   'confirmPin': 'تأكيد رمز PIN',

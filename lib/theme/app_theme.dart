@@ -38,8 +38,7 @@ class AppTheme {
   static const LinearGradient headerGradient = AppColors.headerGradient;
 
   /// Dégradé d'en-tête (sombre).
-  static const LinearGradient headerGradientDark =
-      AppColors.headerGradientDark;
+  static const LinearGradient headerGradientDark = AppColors.headerGradientDark;
 
   /// Dégradé d'en-tête d'une [palette] selon le thème clair/sombre.
   static LinearGradient headerGradientFor(ThemePalette palette, bool isDark) =>
@@ -59,16 +58,37 @@ class AppTheme {
   static ThemeData lightFor(
     ThemePalette palette, {
     String fontFamily = 'System',
-  }) =>
-      _base(palette, Brightness.light, fontFamily: fontFamily);
+  }) => _cached(palette, Brightness.light, false, fontFamily);
 
   /// Thème sombre d'une palette donnée.
   static ThemeData darkFor(
     ThemePalette palette, {
     bool amoled = false,
     String fontFamily = 'System',
-  }) =>
-      _base(palette, Brightness.dark, amoled: amoled, fontFamily: fontFamily);
+  }) => _cached(palette, Brightness.dark, amoled, fontFamily);
+
+  /// Cache des thèmes construits par combinaison
+  /// (palette, clair/sombre, amoled, police) : construire un `ThemeData`
+  /// passe par `ColorScheme.fromSeed` + la typographie custom, ce qui est
+  /// cher. Tant que rien de pertinent ne change, on réutilise l'instance —
+  /// ainsi un `MaterialApp` reconstruit pour une raison sans rapport reçoit
+  /// le même objet `ThemeData` (aucun recascade de `Theme.of`). Espace borné :
+  /// quelques palettes × clair/sombre × amoled × polices embarquées.
+  static final Map<(ThemePalette, Brightness, bool, String), ThemeData>
+  _themeCache = {};
+
+  static ThemeData _cached(
+    ThemePalette palette,
+    Brightness brightness,
+    bool amoled,
+    String fontFamily,
+  ) {
+    final key = (palette, brightness, amoled, fontFamily);
+    return _themeCache.putIfAbsent(
+      key,
+      () => _base(palette, brightness, amoled: amoled, fontFamily: fontFamily),
+    );
+  }
 
   /// Polices de l'interface. « System » utilise la police par défaut du
   /// système ; les autres sont embarquées. Une seule source de vérité :
@@ -171,8 +191,7 @@ class AppTheme {
         backgroundColor: surface,
         centerTitle: false,
         titleSpacing: 20,
-        titleTextStyle:
-            AppTypography.appBar.copyWith(color: scheme.onSurface),
+        titleTextStyle: AppTypography.appBar.copyWith(color: scheme.onSurface),
         iconTheme: IconThemeData(color: scheme.onSurface, size: 22),
       ),
       cardTheme: CardThemeData(
@@ -181,14 +200,16 @@ class AppTheme {
         color: cardColor,
         surfaceTintColor: Colors.transparent,
         shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(AppRadius.xl)),
+          borderRadius: BorderRadius.circular(AppRadius.xl),
+        ),
       ),
       filledButtonTheme: FilledButtonThemeData(
         style: FilledButton.styleFrom(
           elevation: 0,
           minimumSize: const Size.fromHeight(AppSizes.buttonHeightPrimary),
           shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(AppRadius.lg)),
+            borderRadius: BorderRadius.circular(AppRadius.lg),
+          ),
           textStyle: AppTypography.buttonPrimary,
         ),
       ),
@@ -196,15 +217,22 @@ class AppTheme {
         style: OutlinedButton.styleFrom(
           minimumSize: const Size.fromHeight(AppSizes.buttonHeightSecondary),
           shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(AppRadius.md)),
+            borderRadius: BorderRadius.circular(AppRadius.md),
+          ),
           textStyle: AppTypography.buttonSecondary,
         ),
       ),
       inputDecorationTheme: InputDecorationTheme(
         filled: true,
         fillColor: inputFill,
-        hintStyle: TextStyle(color: scheme.outline, fontSize: AppTypography.sizeBase),
-        labelStyle: TextStyle(color: scheme.outline, fontSize: AppTypography.sizeBase),
+        hintStyle: TextStyle(
+          color: scheme.outline,
+          fontSize: AppTypography.sizeBase,
+        ),
+        labelStyle: TextStyle(
+          color: scheme.outline,
+          fontSize: AppTypography.sizeBase,
+        ),
         prefixIconColor: scheme.outline,
         border: OutlineInputBorder(
           borderRadius: BorderRadius.circular(AppRadius.md),
@@ -219,11 +247,14 @@ class AppTheme {
           borderSide: BorderSide(color: scheme.primary, width: 1.5),
         ),
         contentPadding: const EdgeInsets.symmetric(
-            horizontal: AppSpacing.md, vertical: 17),
+          horizontal: AppSpacing.md,
+          vertical: 17,
+        ),
       ),
       listTileTheme: ListTileThemeData(
         shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(AppRadius.lg)),
+          borderRadius: BorderRadius.circular(AppRadius.lg),
+        ),
         iconColor: scheme.onSurfaceVariant,
         textColor: scheme.onSurface,
       ),
@@ -253,19 +284,28 @@ class AppTheme {
       dialogTheme: DialogThemeData(
         backgroundColor: surface,
         shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(AppRadius.xxl)),
-        titleTextStyle:
-            AppTypography.dialogTitle.copyWith(color: scheme.onSurface),
-        contentTextStyle:
-            TextStyle(fontSize: AppTypography.sizeBase, color: scheme.onSurfaceVariant),
+          borderRadius: BorderRadius.circular(AppRadius.xxl),
+        ),
+        titleTextStyle: AppTypography.dialogTitle.copyWith(
+          color: scheme.onSurface,
+        ),
+        contentTextStyle: TextStyle(
+          fontSize: AppTypography.sizeBase,
+          color: scheme.onSurfaceVariant,
+        ),
       ),
       snackBarTheme: SnackBarThemeData(
         behavior: SnackBarBehavior.floating,
-        backgroundColor: isDark ? const Color(0xFF2A2D3A) : const Color(0xFF23242F),
+        backgroundColor: isDark
+            ? const Color(0xFF2A2D3A)
+            : const Color(0xFF23242F),
         contentTextStyle: const TextStyle(
-            color: Colors.white, fontSize: AppTypography.sizeBase),
+          color: Colors.white,
+          fontSize: AppTypography.sizeBase,
+        ),
         shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(AppRadius.md)),
+          borderRadius: BorderRadius.circular(AppRadius.md),
+        ),
       ),
       dividerTheme: DividerThemeData(
         color: scheme.outlineVariant.withValues(alpha: 0.4),
@@ -273,12 +313,17 @@ class AppTheme {
         space: 1,
       ),
       chipTheme: ChipThemeData(
-        backgroundColor: isDark ? const Color(0xFF232631) : const Color(0xFFECEDF4),
+        backgroundColor: isDark
+            ? const Color(0xFF232631)
+            : const Color(0xFFECEDF4),
         selectedColor: scheme.primary,
         labelStyle: AppTypography.chip.copyWith(color: scheme.onSurface),
-        secondaryLabelStyle: AppTypography.chip.copyWith(color: scheme.onPrimary),
+        secondaryLabelStyle: AppTypography.chip.copyWith(
+          color: scheme.onPrimary,
+        ),
         shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(AppRadius.sm)),
+          borderRadius: BorderRadius.circular(AppRadius.sm),
+        ),
         side: BorderSide.none,
         padding: const EdgeInsets.symmetric(horizontal: AppSpacing.sm),
       ),

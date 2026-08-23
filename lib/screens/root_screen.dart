@@ -35,8 +35,8 @@ class _RootScreenState extends ConsumerState<RootScreen> {
     final scheme = Theme.of(context).colorScheme;
     final s = ref.watch(stringsProvider);
     final textScale = MediaQuery.textScalerOf(context).scale(11) / 11;
-    final navHeight =
-        (AppSizes.bottomNavHeight * textScale.clamp(1.0, 1.45)).clamp(66.0, 92.0);
+    final navHeight = (AppSizes.bottomNavHeight * textScale.clamp(1.0, 1.45))
+        .clamp(66.0, 92.0);
     final tabs = [
       _TabData(s.homeTab, Icons.home_outlined, Icons.home_rounded),
       _TabData(
@@ -137,7 +137,10 @@ class _LazyIndexedStackState extends State<_LazyIndexedStack> {
           if (_built[i] case final Widget child)
             Offstage(
               offstage: i != index,
-              child: TickerMode(enabled: i == index, child: child),
+              child: TickerMode(
+                enabled: i == index,
+                child: RepaintBoundary(key: ValueKey('tab_$i'), child: child),
+              ),
             ),
       ],
     );

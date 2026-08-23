@@ -73,8 +73,10 @@ class _RoutineDetailScreenState extends ConsumerState<RoutineDetailScreen> {
                     Row(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Text(routine.icon,
-                            style: const TextStyle(fontSize: 30)),
+                        Text(
+                          routine.icon,
+                          style: const TextStyle(fontSize: 30),
+                        ),
                         const SizedBox(width: 12),
                         Expanded(
                           child: Column(
@@ -170,11 +172,8 @@ class _RoutineDetailScreenState extends ConsumerState<RoutineDetailScreen> {
                   activity: activity,
                   day: DateTime.now(),
                   onTap: () => _editActivity(activity),
-                  onToggle: () => toggleCompletedWithAlarm(
-                    ref,
-                    activity,
-                    DateTime.now(),
-                  ),
+                  onToggle: () =>
+                      toggleCompletedWithAlarm(ref, activity, DateTime.now()),
                   onDelete: () => _deleteActivity(activity),
                 ),
               ),
@@ -211,8 +210,9 @@ class _RoutineDetailScreenState extends ConsumerState<RoutineDetailScreen> {
     await notifications.cancelActivity(activity);
     await ref.read(activitiesProvider.notifier).remove(activity.id);
     final pruned = routine.copyWith(
-      activityIds:
-          routine.activityIds.where((id) => id != activity.id).toList(),
+      activityIds: routine.activityIds
+          .where((id) => id != activity.id)
+          .toList(),
     );
     await ref.read(routinesProvider.notifier).update(pruned);
   }
@@ -230,10 +230,11 @@ class _RoutineDetailScreenState extends ConsumerState<RoutineDetailScreen> {
 
     final notifications = ref.read(notificationServiceProvider);
     final activitiesNotifier = ref.read(activitiesProvider.notifier);
-    for (final a in activities) {
-      await notifications.cancelActivity(a);
-      await activitiesNotifier.remove(a.id);
-    }
+    // Annulations en parallèle, puis une seule suppression Hive groupée.
+    await Future.wait([
+      for (final a in activities) notifications.cancelActivity(a),
+    ]);
+    await activitiesNotifier.removeMany([for (final a in activities) a.id]);
     await ref.read(routinesProvider.notifier).remove(routine.id);
     if (mounted) Navigator.of(context).pop(true);
   }
@@ -244,18 +245,23 @@ class _RoutineDetailScreenState extends ConsumerState<RoutineDetailScreen> {
     final notifications = ref.read(notificationServiceProvider);
     final notifier = ref.read(activitiesProvider.notifier);
     final activities = ref.read(routineActivitiesProvider)[routine.id] ?? [];
+    final updates = <Activity>[];
     for (final a in activities) {
       final updated = a.copyWith(enabled: active);
       if (active) {
-        await notifications.scheduleActivity(updated,
-            reminderOffsetMinutes: offset,
-            s: s,
-            alarmMode: ref.read(settingsProvider).alarmMode);
+        await notifications.scheduleActivity(
+          updated,
+          reminderOffsetMinutes: offset,
+          s: s,
+          alarmMode: ref.read(settingsProvider).alarmMode,
+        );
       } else {
         await notifications.cancelActivity(a);
       }
-      await notifier.update(updated);
+      updates.add(updated);
     }
+    // Une seule mise à jour Hive groupée pour toute la routine.
+    await notifier.updateAll(updates);
     await ref
         .read(routinesProvider.notifier)
         .update(routine.copyWith(active: active));

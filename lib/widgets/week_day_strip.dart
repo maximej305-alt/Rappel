@@ -1,22 +1,30 @@
 import 'package:flutter/material.dart';
 
 import '../l10n/l10n.dart';
-import '../models/activity.dart';
 import '../theme/app_typography.dart';
 
+/// Bandeau des 7 jours de la semaine.
+///
+/// Les compteurs dus/terminés sont fournis déjà calculés par l'appelant
+/// (un seul passage sur les activités pour toute la semaine) : la bande n'a
+/// plus à re-parcourir la liste des activités par cellule.
 class WeekDayStrip extends StatelessWidget {
   const WeekDayStrip({
     super.key,
     required this.weekStart,
     required this.selectedDay,
-    required this.activities,
+    required this.dueCounts,
+    required this.doneCounts,
     required this.onDaySelected,
   });
 
   /// Lundi de la semaine affichée.
   final DateTime weekStart;
   final DateTime selectedDay;
-  final List<Activity> activities;
+
+  /// Occurrences dues / terminées par jour (clés = jours de la semaine).
+  final Map<DateTime, int> dueCounts;
+  final Map<DateTime, int> doneCounts;
   final ValueChanged<DateTime> onDaySelected;
 
   static DateTime startOfWeek(DateTime day) {
@@ -34,9 +42,15 @@ class WeekDayStrip extends StatelessWidget {
   Widget build(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
     final s = context.l10n;
-    final letters = [s.mon, s.tue, s.wed, s.thu, s.fri, s.sat, s.sun]
-        .map((label) => label.substring(0, 1))
-        .toList();
+    final letters = [
+      s.mon,
+      s.tue,
+      s.wed,
+      s.thu,
+      s.fri,
+      s.sat,
+      s.sun,
+    ].map((label) => label.substring(0, 1)).toList();
 
     return Row(
       children: [
@@ -45,13 +59,13 @@ class WeekDayStrip extends StatelessWidget {
             child: _DayCell(
               day: weekStart.add(Duration(days: i)),
               label: letters[i],
-              selected: selectedDay.weekday == i + 1 &&
+              selected:
+                  selectedDay.weekday == i + 1 &&
                   _sameDate(selectedDay, weekStart.add(Duration(days: i))),
-              doneCount: _doneCount(weekStart.add(Duration(days: i))),
-              dueCount: _dueCount(weekStart.add(Duration(days: i))),
+              doneCount: doneCounts[weekStart.add(Duration(days: i))] ?? 0,
+              dueCount: dueCounts[weekStart.add(Duration(days: i))] ?? 0,
               scheme: scheme,
-              onTap: () =>
-                  onDaySelected(weekStart.add(Duration(days: i))),
+              onTap: () => onDaySelected(weekStart.add(Duration(days: i))),
             ),
           ),
       ],
@@ -60,13 +74,6 @@ class WeekDayStrip extends StatelessWidget {
 
   bool _sameDate(DateTime a, DateTime b) =>
       a.year == b.year && a.month == b.month && a.day == b.day;
-
-  int _dueCount(DateTime day) =>
-      activities.where((a) => a.isDueOn(day)).length;
-
-  int _doneCount(DateTime day) => activities
-      .where((a) => a.isDueOn(day) && a.isCompletedOn(day))
-      .length;
 }
 
 class _DayCell extends StatelessWidget {
@@ -90,7 +97,8 @@ class _DayCell extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final isToday = day.year == DateTime.now().year &&
+    final isToday =
+        day.year == DateTime.now().year &&
         day.month == DateTime.now().month &&
         day.day == DateTime.now().day;
     final complete = dueCount > 0 && doneCount >= dueCount;
@@ -147,8 +155,9 @@ class _DayCell extends StatelessWidget {
                     value: fraction,
                     minHeight: 4,
                     borderRadius: BorderRadius.circular(2),
-                    backgroundColor:
-                        selected ? Colors.white24 : scheme.outlineVariant,
+                    backgroundColor: selected
+                        ? Colors.white24
+                        : scheme.outlineVariant,
                     color: complete ? Colors.greenAccent : Colors.amberAccent,
                   ),
                 ),
