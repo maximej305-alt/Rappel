@@ -1,0 +1,40 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Ligne d'activité : barre colorée + heure + nom (barré si terminé). -->
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:orientation="horizontal"
+    android:gravity="center_vertical"
+    android:paddingTop="5dp"
+    android:paddingBottom="5dp">
+
+    <!-- Barre d'état : un TextView (et non View nu) car les RemoteViews
+         n'autorisent que la liste blanche de composants système. -->
+    <TextView
+        android:id="@+id/row_bar"
+        android:layout_width="3dp"
+        android:layout_height="26dp"
+        android:background="#FF4F5DFF" />
+
+    <TextView
+        android:id="@+id/row_time"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginStart="8dp"
+        android:text="00:00"
+        android:textColor="#FF9AA0B5"
+        android:textSize="12sp"
+        android:textStyle="bold" />
+
+    <TextView
+        android:id="@+id/row_title"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:layout_weight="1"
+        android:layout_marginStart="8dp"
+        android:maxLines="1"
+        android:ellipsize="end"
+        android:text=""
+        android:textColor="#FFF2F3F8"
+        android:textSize="13sp" />
+</LinearLayout>

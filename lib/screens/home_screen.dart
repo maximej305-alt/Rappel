@@ -64,7 +64,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
       body: ListView.builder(
         padding: EdgeInsets.only(
           bottom: 96,
-          top: MediaQuery.of(context).padding.top + 8,
+          top: MediaQuery.paddingOf(context).top + 8,
         ),
         itemCount: todays.isEmpty ? 2 : 1 + todays.length,
         itemBuilder: (context, index) {

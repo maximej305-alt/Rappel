@@ -43,15 +43,56 @@ class _CalendarScreenState extends ConsumerState<CalendarScreen> {
 
     return Scaffold(
       appBar: AppBar(title: Text(s.calendar)),
-      body: ListView(
+      // Virtualisé : la carte calendrier est l'item 0, les tuiles du jour
+      // sélectionné ne sont construites que si visibles.
+      body: ListView.builder(
         padding: const EdgeInsets.only(bottom: 32),
-        children: [
-          Padding(
-            padding: const EdgeInsets.fromLTRB(20, 8, 20, 12),
-            child: Card(
-              child: Padding(
-                padding: const EdgeInsets.all(12),
-                child: TableCalendar<Activity>(
+        itemCount: selectedActivities.isEmpty ? 3 : 2 + selectedActivities.length,
+        itemBuilder: (context, index) {
+          if (index == 0) return _buildCalendarCard(locale, scheme, events);
+          if (index == 1) {
+            return Padding(
+              padding: const EdgeInsets.fromLTRB(20, 8, 20, 10),
+              child: Text(
+                _capitalize(formatFullDate(_selectedDay, locale)),
+                style: AppTypography.calendarHeader.copyWith(
+                  color: scheme.onSurface,
+                ),
+              ),
+            );
+          }
+          if (selectedActivities.isEmpty) {
+            return AppEmptyState(icon: Icons.event_busy, title: s.weeklyEmpty);
+          }
+          final activity = selectedActivities[index - 2];
+          return Padding(
+            padding: const EdgeInsets.fromLTRB(20, 0, 20, 8),
+            child: ActivityTile(
+              activity: activity,
+              day: _selectedDay,
+              onTap: () => _openEdit(activity),
+              onToggle: () =>
+                  toggleCompletedWithAlarm(ref, activity, _selectedDay),
+              onDelete: () => _deleteActivity(activity, s),
+            ),
+          );
+        },
+      ),
+    );
+  }
+
+  /// Carte TableCalendar (item 0 de la liste virtualisée).
+  Widget _buildCalendarCard(
+    String locale,
+    ColorScheme scheme,
+    Map<DateTime, List<Activity>> events,
+  ) {
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(20, 8, 20, 12),
+      child: Card(
+        child: Padding(
+          padding: const EdgeInsets.all(12),
+          child: TableCalendar<Activity>(
                   firstDay: DateTime(DateTime.now().year - 1),
                   lastDay: DateTime(DateTime.now().year + 5),
                   focusedDay: _focusedDay,
@@ -115,37 +156,10 @@ class _CalendarScreenState extends ConsumerState<CalendarScreen> {
                     markerSize: 6,
                     outsideDaysVisible: false,
                   ),
-                ),
-              ),
-            ),
-          ),
-          Padding(
-            padding: const EdgeInsets.fromLTRB(20, 8, 20, 10),
-            child: Text(
-              _capitalize(formatFullDate(_selectedDay, locale)),
-              style: AppTypography.calendarHeader.copyWith(
-                color: scheme.onSurface,
-              ),
-            ),
-          ),
-          if (selectedActivities.isEmpty)
-            AppEmptyState(icon: Icons.event_busy, title: s.weeklyEmpty)
-          else
-            for (final activity in selectedActivities)
-              Padding(
-                padding: const EdgeInsets.fromLTRB(20, 0, 20, 8),
-                child: ActivityTile(
-                  activity: activity,
-                  day: _selectedDay,
-                  onTap: () => _openEdit(activity),
-                  onToggle: () =>
-                      toggleCompletedWithAlarm(ref, activity, _selectedDay),
-                  onDelete: () => _deleteActivity(activity, s),
-                ),
-              ),
-        ],
-      ),
-    );
+              ), // TableCalendar
+            ), // Padding interne
+          ), // Card
+      ); // Padding externe + return
   }
 
   String _capitalize(String s) =>

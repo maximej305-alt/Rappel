@@ -349,13 +349,15 @@ class _PatternPainter extends CustomPainter {
     }
 
     // Lignes entre les points sélectionnés.
+    // Pas de MaskFilter.blur : c'est l'opération de paint la plus chère sur
+    // GPU anciens (repeinte à chaque mouvement de doigt). Un trait légèrement
+    // translucide donne un rendu quasi identique sans le coût.
     if (selected.length > 1) {
       final line = Paint()
-        ..color = color
+        ..color = color.withValues(alpha: 0.85)
         ..strokeWidth = cell * 0.12
         ..strokeCap = StrokeCap.round
-        ..style = PaintingStyle.stroke
-        ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 6);
+        ..style = PaintingStyle.stroke;
       for (var i = 0; i < selected.length - 1; i++) {
         canvas.drawLine(
           _center(size, selected[i]),

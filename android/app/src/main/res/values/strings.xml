@@ -1,0 +1,46 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">Rappel+</string>
+    <string name="widget_title">Aujourd\'hui</string>
+    <string name="widget_empty">Aucune activité prévue aujourd\'hui</string>
+    <string name="widget_next_empty">Rien de plus aujourd\'hui ✓</string>
+    <string name="widget_next_label">Prochaine activité</string>
+    <string name="widget_progress_label_name">Progression du jour</string>
+    <string name="widget_streak_label">Série</string>
+    <string name="widget_week_label">Semaine</string>
+    <string name="widget_add_label">Ouvrir Rappel+</string>
+    <string name="widget_description">Activités du jour et progression</string>
+
+    <!-- Styles du widget Semaine (déclarés ici faute de fichier themes dédié) -->
+    <style name="WidgetWeekDay">
+        <item name="android:layout_width">0dp</item>
+        <item name="android:layout_height">wrap_content</item>
+        <item name="android:layout_weight">1</item>
+        <item name="android:orientation">vertical</item>
+        <item name="android:gravity">center</item>
+    </style>
+    <style name="WidgetWeekLetter">
+        <item name="android:layout_width">wrap_content</item>
+        <item name="android:layout_height">wrap_content</item>
+        <item name="android:textColor">#FF9AA0B5</item>
+        <item name="android:textSize">11sp</item>
+        <item name="android:textStyle">bold</item>
+    </style>
+    <style name="WidgetWeekBar">
+        <item name="android:layout_width">22dp</item>
+        <item name="android:layout_height">4dp</item>
+        <item name="android:layout_marginTop">3dp</item>
+        <item name="android:progressTint">#FF4F5DFF</item>
+        <item name="android:progressBackgroundTint">#FF2A2D3A</item>
+        <item name="android:max">100</item>
+    </style>
+    <style name="WidgetWeekDayNum">
+        <item name="android:layout_width">wrap_content</item>
+        <item name="android:layout_height">wrap_content</item>
+        <item name="android:layout_marginTop">3dp</item>
+        <item name="android:textColor">#FFF2F3F8</item>
+        <item name="android:textSize">12sp</item>
+        <item name="android:textStyle">bold</item>
+    </style>
+</resources>
+

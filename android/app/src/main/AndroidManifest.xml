@@ -65,6 +65,78 @@
                 <action android:name="com.htc.intent.action.QUICKBOOT_POWERON"/>
             </intent-filter>
         </receiver>
+        <!-- Widget « Aujourd'hui » -->
+        <receiver
+            android:name="com.aetheria.rappel_plus.TodayWidgetProvider"
+            android:exported="false"
+            android:label="@string/widget_title">
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
+            </intent-filter>
+            <meta-data
+                android:name="android.appwidget.provider"
+                android:resource="@xml/widget_today_info" />
+        </receiver>
+        <!-- Widget « Prochaine activité » -->
+        <receiver
+            android:name="com.aetheria.rappel_plus.NextActivityWidgetProvider"
+            android:exported="false"
+            android:label="@string/widget_next_label">
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
+            </intent-filter>
+            <meta-data
+                android:name="android.appwidget.provider"
+                android:resource="@xml/widget_next_info" />
+        </receiver>
+        <!-- Widget « Progression » -->
+        <receiver
+            android:name="com.aetheria.rappel_plus.ProgressWidgetProvider"
+            android:exported="false"
+            android:label="@string/widget_progress_label_name">
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
+            </intent-filter>
+            <meta-data
+                android:name="android.appwidget.provider"
+                android:resource="@xml/widget_progress_info" />
+        </receiver>
+        <!-- Widget « Série » -->
+        <receiver
+            android:name="com.aetheria.rappel_plus.StreakWidgetProvider"
+            android:exported="false"
+            android:label="@string/widget_streak_label">
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
+            </intent-filter>
+            <meta-data
+                android:name="android.appwidget.provider"
+                android:resource="@xml/widget_streak_info" />
+        </receiver>
+        <!-- Widget « Semaine » -->
+        <receiver
+            android:name="com.aetheria.rappel_plus.WeekWidgetProvider"
+            android:exported="false"
+            android:label="@string/widget_week_label">
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
+            </intent-filter>
+            <meta-data
+                android:name="android.appwidget.provider"
+                android:resource="@xml/widget_week_info" />
+        </receiver>
+        <!-- Widget « Bouton + » -->
+        <receiver
+            android:name="com.aetheria.rappel_plus.AddButtonWidgetProvider"
+            android:exported="false"
+            android:label="@string/widget_add_label">
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
+            </intent-filter>
+            <meta-data
+                android:name="android.appwidget.provider"
+                android:resource="@xml/widget_add_info" />
+        </receiver>
     </application>
     <!-- Required to query activities that can process text, see:
          https://developer.android.com/training/package-visibility and

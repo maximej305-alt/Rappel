@@ -12,6 +12,7 @@ import 'services/notification_service.dart';
 import 'services/quick_action_handler.dart';
 import 'services/sound_preview_service.dart';
 import 'services/storage_service.dart';
+import 'services/today_widget_service.dart';
 import 'theme/app_theme.dart';
 import 'utils/dates.dart';
 
@@ -27,11 +28,11 @@ Future<void> main() async {
   final storage = StorageService();
   await storage.init();
 
-  // Dates localisées : langue utilisateur + repli FR/EN (calendrier, pickers).
+  // Dates localisées : seul le locale utilisateur est nécessaire avant la
+  // première frame ; les replis FR/EN sont chargés après, hors chemin
+  // critique (gain de démarrage sur appareils anciens).
   final bootLocale = storage.loadSettings().locale;
   await initializeDateFormatting(intlLocale(bootLocale));
-  await initializeDateFormatting('fr_FR');
-  await initializeDateFormatting('en_US');
 
   // Répertoire du journal des actions rapides + application des marquages
   // « Terminé » différés (cohérence des données) : doivent précéder
@@ -65,6 +66,19 @@ class _RappelPlusAppState extends ConsumerState<RappelPlusApp>
   void initState() {
     super.initState();
     WidgetsBinding.instance.addObserver(this);
+    // Miroir des widgets d'écran d'accueil : à chaque changement d'activités
+    // et au rollover minuit, toutes les données sont réécrites pour les 6
+    // widgets (liste, prochaine, progression, série, semaine).
+    ref.listenManual(activitiesProvider, (_, next) {
+      HomeWidgetSync.updateSource(
+        next,
+        stats: ref.read(habitStatsProvider),
+        letters: _weekLetters(),
+      );
+    });
+    ref.listenManual(todayProvider, (_, _) {
+      _syncWidgetsNow();
+    });
     // Initialisations secondaires déclenchées après la première frame.
     WidgetsBinding.instance.addPostFrameCallback((_) => _secondaryInit());
   }
@@ -75,17 +89,40 @@ class _RappelPlusAppState extends ConsumerState<RappelPlusApp>
     super.dispose();
   }
 
+  /// Réécrit les données de tous les widgets immédiatement.
+  void _syncWidgetsNow() {
+    HomeWidgetSync.updateSource(
+      ref.read(activitiesProvider),
+      stats: ref.read(habitStatsProvider),
+      letters: _weekLetters(),
+    );
+  }
+
+  /// Initiales des jours (lun → dim) dans la langue active.
+  List<String> _weekLetters() {
+    final s = appStringsFor(ref.read(settingsProvider).locale);
+    return [s.mon, s.tue, s.wed, s.thu, s.fri, s.sat, s.sun]
+        .map((e) => e.substring(0, 1))
+        .toList();
+  }
+
   /// Fuseau horaire, permissions et replanification des rappels : hors du
   /// chemin critique du démarrage. En cas d'échec, l'app reste utilisable ;
   /// un changement de réglages replanifie à nouveau.
   Future<void> _secondaryInit() async {
     try {
+      // Replis FR/EN pour les formats de date : nécessaires seulement si
+      // l'utilisateur change de langue, jamais avant la première frame.
+      await initializeDateFormatting('fr_FR');
+      await initializeDateFormatting('en_US');
       final notifications = ref.read(notificationServiceProvider);
       await notifications.init(onBackgroundAction: notificationActionCallback);
       final settings = ref.read(settingsProvider);
       // Attendre la fin du chargement Hive avant de replanifier : sans quoi on
       // relit la liste vide initiale et aucun rappel n'est programmé.
       await ref.read(activitiesProvider.notifier).ready;
+      // Premier remplissage de tous les widgets avec les données réelles.
+      _syncWidgetsNow();
       // Replanification + persistance des IDs réalloués (collisions).
       await rescheduleAllPersisted(
         ref,

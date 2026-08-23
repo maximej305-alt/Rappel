@@ -1,0 +1,69 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Widget « Semaine » (4x2) : 7 colonnes lettre + numéro + barre. -->
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:id="@+id/week_root"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:orientation="vertical"
+    android:padding="12dp"
+    android:background="#D913151E">
+
+    <TextView
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="@string/widget_title"
+        android:textColor="#FF9AA0B5"
+        android:textSize="12sp"
+        android:textStyle="bold" />
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        android:layout_weight="1"
+        android:orientation="horizontal"
+        android:gravity="center">
+
+        <!-- Jour 0 (lundi) -->
+        <LinearLayout style="@style/WidgetWeekDay">
+            <TextView android:id="@+id/wk_letter_0" style="@style/WidgetWeekLetter" />
+            <ProgressBar android:id="@+id/wk_bar_0" style="@style/WidgetWeekBar" />
+            <TextView android:id="@+id/wk_day_0" style="@style/WidgetWeekDayNum" />
+        </LinearLayout>
+        <!-- Jour 1 -->
+        <LinearLayout style="@style/WidgetWeekDay">
+            <TextView android:id="@+id/wk_letter_1" style="@style/WidgetWeekLetter" />
+            <ProgressBar android:id="@+id/wk_bar_1" style="@style/WidgetWeekBar" />
+            <TextView android:id="@+id/wk_day_1" style="@style/WidgetWeekDayNum" />
+        </LinearLayout>
+        <!-- Jour 2 -->
+        <LinearLayout style="@style/WidgetWeekDay">
+            <TextView android:id="@+id/wk_letter_2" style="@style/WidgetWeekLetter" />
+            <ProgressBar android:id="@+id/wk_bar_2" style="@style/WidgetWeekBar" />
+            <TextView android:id="@+id/wk_day_2" style="@style/WidgetWeekDayNum" />
+        </LinearLayout>
+        <!-- Jour 3 -->
+        <LinearLayout style="@style/WidgetWeekDay">
+            <TextView android:id="@+id/wk_letter_3" style="@style/WidgetWeekLetter" />
+            <ProgressBar android:id="@+id/wk_bar_3" style="@style/WidgetWeekBar" />
+            <TextView android:id="@+id/wk_day_3" style="@style/WidgetWeekDayNum" />
+        </LinearLayout>
+        <!-- Jour 4 -->
+        <LinearLayout style="@style/WidgetWeekDay">
+            <TextView android:id="@+id/wk_letter_4" style="@style/WidgetWeekLetter" />
+            <ProgressBar android:id="@+id/wk_bar_4" style="@style/WidgetWeekBar" />
+            <TextView android:id="@+id/wk_day_4" style="@style/WidgetWeekDayNum" />
+        </LinearLayout>
+        <!-- Jour 5 -->
+        <LinearLayout style="@style/WidgetWeekDay">
+            <TextView android:id="@+id/wk_letter_5" style="@style/WidgetWeekLetter" />
+            <ProgressBar android:id="@+id/wk_bar_5" style="@style/WidgetWeekBar" />
+            <TextView android:id="@+id/wk_day_5" style="@style/WidgetWeekDayNum" />
+        </LinearLayout>
+        <!-- Jour 6 (dimanche) -->
+        <LinearLayout style="@style/WidgetWeekDay">
+            <TextView android:id="@+id/wk_letter_6" style="@style/WidgetWeekLetter" />
+            <ProgressBar android:id="@+id/wk_bar_6" style="@style/WidgetWeekBar" />
+            <TextView android:id="@+id/wk_day_6" style="@style/WidgetWeekDayNum" />
+        </LinearLayout>
+    </LinearLayout>
+</LinearLayout>

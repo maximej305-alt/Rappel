@@ -64,15 +64,60 @@ class _HebdoScreenState extends ConsumerState<HebdoScreen> {
     final s = ref.watch(stringsProvider);
     final scheme = Theme.of(context).colorScheme;
 
+    // Activités du jour sélectionné : mémoïsées par clé de jour (le calcul
+    // semaine complet vit dans [_buildWeekCard], reconstruit paresseusement).
     final dayActivities =
         activities.where((a) => a.isDueOn(_selectedDay)).toList()
           ..sort(compareActivities);
 
+    return Scaffold(
+      appBar: AppBar(title: Text(s.myWeek)),
+      // Virtualisé : seules les tuiles visibles sont construites quand la
+      // journée compte beaucoup d'activités.
+      body: ListView.builder(
+        padding: const EdgeInsets.only(bottom: 32),
+        itemCount: dayActivities.isEmpty ? 3 : 2 + dayActivities.length,
+        itemBuilder: (context, index) {
+          if (index == 0) return _buildWeekCard(scheme, s, locale);
+          if (index == 1) {
+            return Padding(
+              padding: const EdgeInsets.fromLTRB(20, 12, 20, 10),
+              child: Text(
+                _capitalize(formatDay(_selectedDay, locale)),
+                style: AppTypography.calendarHeader.copyWith(
+                  color: scheme.onSurface,
+                ),
+              ),
+            );
+          }
+          if (dayActivities.isEmpty) {
+            return AppEmptyState(icon: Icons.event_busy, title: s.weeklyEmpty);
+          }
+          final activity = dayActivities[index - 2];
+          return Padding(
+            padding: const EdgeInsets.fromLTRB(20, 0, 20, 8),
+            child: ActivityTile(
+              activity: activity,
+              day: _selectedDay,
+              onTap: () => _openEdit(activity),
+              onToggle: () =>
+                  toggleCompletedWithAlarm(ref, activity, _selectedDay),
+              onDelete: () => _deleteActivity(activity, s),
+            ),
+          );
+        },
+      ),
+    );
+  }
+
+  /// Carte d'en-tête : navigation semaine + bandeau jours + stats.
+  Widget _buildWeekCard(ColorScheme scheme, AppStrings s, String locale) {
+    final activities = ref.watch(activitiesProvider);
+    final dayDueCounts = <DateTime, int>{};
+    final dayDoneCounts = <DateTime, int>{};
     final weekDays = [
       for (var i = 0; i < 7; i++) _weekStart.add(Duration(days: i)),
     ];
-    final dayDueCounts = <DateTime, int>{};
-    final dayDoneCounts = <DateTime, int>{};
     for (final d in weekDays) {
       var due = 0;
       var done = 0;
@@ -86,100 +131,66 @@ class _HebdoScreenState extends ConsumerState<HebdoScreen> {
       dayDoneCounts[d] = done;
     }
     final fullDays = weekDays
-        .where(
-          (d) =>
-              (dayDueCounts[d] ?? 0) > 0 &&
-              (dayDoneCounts[d] ?? 0) >= (dayDueCounts[d] ?? 0),
-        )
+        .where((d) =>
+            (dayDueCounts[d] ?? 0) > 0 &&
+            (dayDoneCounts[d] ?? 0) >= (dayDueCounts[d] ?? 0))
         .length;
-    final activeDays = weekDays.where((d) => (dayDueCounts[d] ?? 0) > 0).length;
+    final activeDays =
+        weekDays.where((d) => (dayDueCounts[d] ?? 0) > 0).length;
     final doneThisWeek = dayDoneCounts.values.fold<int>(0, (sum, v) => sum + v);
 
-    return Scaffold(
-      appBar: AppBar(title: Text(s.myWeek)),
-      body: ListView(
-        padding: const EdgeInsets.only(bottom: 32),
-        children: [
-          Padding(
-            padding: const EdgeInsets.fromLTRB(20, 8, 20, 12),
-            child: Card(
-              child: Padding(
-                padding: const EdgeInsets.fromLTRB(12, 16, 12, 16),
-                child: Column(
-                  children: [
-                    Row(
-                      children: [
-                        IconButton(
-                          onPressed: () => _goTo(-1),
-                          icon: const Icon(Icons.chevron_left),
-                          tooltip: s.prevWeek,
-                        ),
-                        Expanded(
-                          child: Text(
-                            _weekLabel(locale),
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
-                            textAlign: TextAlign.center,
-                            style: AppTypography.sectionTitle.copyWith(
-                              fontSize: AppTypography.sizeBase,
-                              color: scheme.onSurface,
-                            ),
-                          ),
-                        ),
-                        IconButton(
-                          onPressed: () => _goTo(1),
-                          icon: const Icon(Icons.chevron_right),
-                          tooltip: s.nextWeek,
-                        ),
-                      ],
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(20, 8, 20, 12),
+      child: Card(
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(12, 16, 12, 16),
+          child: Column(
+            children: [
+              Row(
+                children: [
+                  IconButton(
+                    onPressed: () => _goTo(-1),
+                    icon: const Icon(Icons.chevron_left),
+                    tooltip: s.prevWeek,
+                  ),
+                  Expanded(
+                    child: Text(
+                      _weekLabel(locale),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      textAlign: TextAlign.center,
+                      style: AppTypography.sectionTitle.copyWith(
+                        fontSize: AppTypography.sizeBase,
+                        color: Theme.of(context).colorScheme.onSurface,
+                      ),
                     ),
-                    const SizedBox(height: 8),
-                    WeekDayStrip(
-                      weekStart: _weekStart,
-                      selectedDay: _selectedDay,
-                      dueCounts: dayDueCounts,
-                      doneCounts: dayDoneCounts,
-                      onDaySelected: (day) =>
-                          setState(() => _selectedDay = day),
-                    ),
-                    const SizedBox(height: 16),
-                    _WeeklyStats(
-                      fullDays: fullDays,
-                      activeDays: activeDays,
-                      doneCount: doneThisWeek,
-                      scheme: scheme,
-                      s: s,
-                    ),
-                  ],
-                ),
+                  ),
+                  IconButton(
+                    onPressed: () => _goTo(1),
+                    icon: const Icon(Icons.chevron_right),
+                    tooltip: s.nextWeek,
+                  ),
+                ],
               ),
-            ),
+              const SizedBox(height: 8),
+              WeekDayStrip(
+                weekStart: _weekStart,
+                selectedDay: _selectedDay,
+                dueCounts: dayDueCounts,
+                doneCounts: dayDoneCounts,
+                onDaySelected: (day) => setState(() => _selectedDay = day),
+              ),
+              const SizedBox(height: 16),
+              _WeeklyStats(
+                fullDays: fullDays,
+                activeDays: activeDays,
+                doneCount: doneThisWeek,
+                scheme: Theme.of(context).colorScheme,
+                s: s,
+              ),
+            ],
           ),
-          Padding(
-            padding: const EdgeInsets.fromLTRB(20, 12, 20, 10),
-            child: Text(
-              _capitalize(formatDay(_selectedDay, locale)),
-              style: AppTypography.calendarHeader.copyWith(
-                color: scheme.onSurface,
-              ),
-            ),
-          ),
-          if (dayActivities.isEmpty)
-            AppEmptyState(icon: Icons.event_busy, title: s.weeklyEmpty)
-          else
-            for (final activity in dayActivities)
-              Padding(
-                padding: const EdgeInsets.fromLTRB(20, 0, 20, 8),
-                child: ActivityTile(
-                  activity: activity,
-                  day: _selectedDay,
-                  onTap: () => _openEdit(activity),
-                  onToggle: () =>
-                      toggleCompletedWithAlarm(ref, activity, _selectedDay),
-                  onDelete: () => _deleteActivity(activity, s),
-                ),
-              ),
-        ],
+        ),
       ),
     );
   }
