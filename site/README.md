@@ -81,3 +81,5 @@ balise `<title>`/meta si besoin.
   actif, pas d'analytics).
 - Les blocs Â« ðŸ“Œ Ã€ complÃ©ter Â» dans les pages lÃ©gales sont Ã  remplir avant
   une publication commerciale.
+
+> Déployé automatiquement via GitHub Actions à chaque mise à jour du dossier site/.
